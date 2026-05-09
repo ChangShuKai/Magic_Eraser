@@ -5,11 +5,20 @@ import numpy as np
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QPushButton, QLabel, QFileDialog, 
                              QRadioButton, QButtonGroup, QCheckBox, 
-                             QGroupBox, QMessageBox, QScrollArea, QFrame, QSizePolicy)
+                             QGroupBox, QMessageBox, QScrollArea, QFrame, QSizePolicy,
+                             QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QImage, QPixmap, QPainter
+from PyQt6.QtGui import QImage, QPixmap, QPainter, QIcon, QPalette, QBrush, QColor
 
 from image_processor import process_image, enhance_text, whiten_background
+
+def create_shadow():
+    shadow = QGraphicsDropShadowEffect()
+    shadow.setBlurRadius(20)
+    shadow.setXOffset(0)
+    shadow.setYOffset(10)
+    shadow.setColor(QColor(0, 0, 0, 40))
+    return shadow
 
 class ResponsiveImageLabel(QLabel):
     """可以根據視窗大小自動縮放圖片的標籤"""
@@ -17,7 +26,15 @@ class ResponsiveImageLabel(QLabel):
         super().__init__(text)
         self.original_pixmap = None
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setStyleSheet("background-color: #e0e0e0; border: 1px solid #aaa; border-radius: 4px;")
+        self.setStyleSheet("""
+            ResponsiveImageLabel {
+                background-color: rgba(255, 255, 255, 0.4);
+                border: 2px solid rgba(255, 255, 255, 0.6);
+                border-radius: 12px;
+                color: #333;
+                font-weight: bold;
+            }
+        """)
         self.setMinimumSize(150, 150)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
@@ -61,9 +78,16 @@ class ImageRow(QFrame):
 
         self.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
         self.setLineWidth(1)
-        self.setStyleSheet("ImageRow { background-color: #f9f9f9; margin-bottom: 5px; border-radius: 5px; }")
-        # 設定列的最小高度，這樣縮放時版面不會太擠
-        self.setMinimumHeight(200)
+        self.setStyleSheet("""
+            ImageRow { 
+                background-color: rgba(255, 255, 255, 0.4); 
+                margin-bottom: 10px; 
+                border-radius: 15px; 
+                border: 1px solid rgba(255, 255, 255, 0.6);
+            }
+        """)
+        self.setMinimumHeight(220)
+        self.setGraphicsEffect(create_shadow())
 
         layout = QHBoxLayout(self)
 
@@ -71,6 +95,7 @@ class ImageRow(QFrame):
         name_label = QLabel(self.filename)
         name_label.setFixedWidth(150)
         name_label.setWordWrap(True)
+        name_label.setStyleSheet("color: #333; font-weight: bold; background: transparent; border: none;")
         layout.addWidget(name_label)
 
         # 原圖預覽 (響應式)
@@ -82,8 +107,8 @@ class ImageRow(QFrame):
         layout.addWidget(self.proc_preview, 1)
 
         # 單獨儲存按鈕
-        self.btn_save = QPushButton("儲存此圖片")
-        self.btn_save.setFixedWidth(100)
+        self.btn_save = QPushButton("💾 儲存此圖片")
+        self.btn_save.setFixedWidth(120)
         self.btn_save.setEnabled(False)
         self.btn_save.clicked.connect(self.save_individual)
         layout.addWidget(self.btn_save)
@@ -115,17 +140,110 @@ class ImageRow(QFrame):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("考卷手寫筆記去除工具 - 批量處理版")
-        self.resize(1100, 800)
+        self.setWindowTitle("Magic Eraser - 考卷手寫筆記去除工具")
+        self.resize(1200, 800)
         
+        # 設定應用程式圖示
+        if os.path.exists("icon.png"):
+            self.setWindowIcon(QIcon("icon.png"))
+            
         self.image_rows = []
 
         self.setup_ui()
+        self.apply_glass_theme()
+
+    def apply_glass_theme(self):
+        # 設定背景圖片
+        if os.path.exists("bg.png"):
+            bg_image = QPixmap("bg.png")
+            # 使用 Palette 設定背景，會自動鋪滿
+            palette = QPalette()
+            palette.setBrush(QPalette.ColorRole.Window, QBrush(bg_image.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)))
+            self.setPalette(palette)
+            self.setAutoFillBackground(True)
+
+        # 全局 QSS 毛玻璃風格
+        glass_qss = """
+        QMainWindow {
+            background-color: transparent;
+        }
+        QGroupBox {
+            background-color: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 12px;
+            margin-top: 2ex;
+            font-weight: bold;
+            color: #222;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            subcontrol-position: top center;
+            padding: 0 10px;
+            color: #333;
+        }
+        QPushButton {
+            background-color: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            padding: 8px 15px;
+            color: #333;
+            font-weight: bold;
+        }
+        QPushButton:hover {
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid #fff;
+        }
+        QPushButton:disabled {
+            background-color: rgba(200, 200, 200, 0.3);
+            color: #888;
+        }
+        QPushButton#btnSaveAll {
+            background-color: rgba(33, 150, 243, 0.8);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        QPushButton#btnSaveAll:hover {
+            background-color: rgba(33, 150, 243, 1.0);
+        }
+        QPushButton#btnProcessAll {
+            background-color: rgba(76, 175, 80, 0.8);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            font-size: 16px;
+        }
+        QPushButton#btnProcessAll:hover {
+            background-color: rgba(76, 175, 80, 1.0);
+        }
+        QScrollArea {
+            background-color: transparent;
+            border: none;
+        }
+        QScrollArea > QWidget > QWidget {
+            background-color: transparent;
+        }
+        QRadioButton, QCheckBox, QLabel {
+            color: #222;
+            font-weight: bold;
+            background: transparent;
+        }
+        """
+        self.setStyleSheet(glass_qss)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # 視窗縮放時更新背景圖比例
+        if os.path.exists("bg.png"):
+            bg_image = QPixmap("bg.png")
+            palette = self.palette()
+            palette.setBrush(QPalette.ColorRole.Window, QBrush(bg_image.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)))
+            self.setPalette(palette)
 
     def setup_ui(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(15)
 
         # --- 上方控制面板 ---
         top_panel = QWidget()
@@ -134,15 +252,16 @@ class MainWindow(QMainWindow):
 
         # 檔案操作群組
         file_group = QGroupBox("檔案操作")
+        file_group.setGraphicsEffect(create_shadow())
         file_layout = QVBoxLayout()
         
         btn_layout = QHBoxLayout()
-        self.btn_load = QPushButton("載入圖片 (支援多選)")
+        self.btn_load = QPushButton("📂 載入圖片 (支援多選)")
         self.btn_load.clicked.connect(self.load_images)
-        self.btn_save_all = QPushButton("全部儲存 (左上角)")
+        self.btn_save_all = QPushButton("💾 全部儲存")
+        self.btn_save_all.setObjectName("btnSaveAll")
         self.btn_save_all.clicked.connect(self.save_all)
         self.btn_save_all.setEnabled(False)
-        self.btn_save_all.setStyleSheet("background-color: #2196F3; color: white; font-weight: bold;")
         
         btn_layout.addWidget(self.btn_save_all)
         btn_layout.addWidget(self.btn_load)
@@ -153,6 +272,7 @@ class MainWindow(QMainWindow):
 
         # 處理設定群組
         param_group = QGroupBox("處理設定")
+        param_group.setGraphicsEffect(create_shadow())
         param_layout = QVBoxLayout()
 
         # 顏色與容差配置 (水平排列以節省空間)
@@ -174,19 +294,20 @@ class MainWindow(QMainWindow):
 
         # 進階設定配置
         settings_layout2 = QHBoxLayout()
-        self.cb_inpaint = QCheckBox("使用智慧修補 (更徹底去除痕跡)")
-        self.cb_inpaint.setChecked(True) # 預設開啟智慧修補
+        self.cb_inpaint = QCheckBox("使用智慧修補 (修補殘留網點)")
+        self.cb_inpaint.setChecked(False) # 預設關閉，因為背景已經純白
+        self.cb_inpaint.setToolTip("因為背景已經優化為純白，多數情況下不需要開啟智慧修補。開啟後處理速度會變慢。")
         self.cb_enhance = QCheckBox("增強黑白對比")
         settings_layout2.addWidget(self.cb_inpaint)
         settings_layout2.addWidget(self.cb_enhance)
         settings_layout2.addStretch()
         
-        self.btn_process_all = QPushButton("全部轉換")
-        self.btn_process_all.setMinimumHeight(40)
-        self.btn_process_all.setMinimumWidth(120)
+        self.btn_process_all = QPushButton("✨ 全部轉換 ✨")
+        self.btn_process_all.setObjectName("btnProcessAll")
+        self.btn_process_all.setMinimumHeight(45)
+        self.btn_process_all.setMinimumWidth(150)
         self.btn_process_all.clicked.connect(self.process_all)
         self.btn_process_all.setEnabled(False)
-        self.btn_process_all.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;")
         settings_layout2.addWidget(self.btn_process_all)
 
         param_layout.addLayout(settings_layout2)
@@ -198,6 +319,7 @@ class MainWindow(QMainWindow):
         # --- 下方圖片排排站展示區 ---
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setGraphicsEffect(create_shadow())
         
         self.scroll_content = QWidget()
         self.list_layout = QVBoxLayout(self.scroll_content)
@@ -321,6 +443,7 @@ class MainWindow(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    # 使用 Fusion 風格作為基底
     app.setStyle('Fusion')
     window = MainWindow()
     window.show()
