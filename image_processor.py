@@ -16,9 +16,9 @@ def process_image(image, color_type='red', tolerance=50, fill_method='white'):
     # 轉換為 HSV 色彩空間
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     
-    # 為了避免將掃描的「黑字邊緣色差」誤判為紅/藍筆，飽和度閾值不能太低
-    s_lower = 50
-    v_lower = 50
+    # 為了能徹底清除淡色筆跡，將閾值降至 30
+    s_lower = 30
+    v_lower = 30
     
     # 紅色的 HSV 範圍
     lower_red1 = np.array([0, s_lower, v_lower])
@@ -46,11 +46,24 @@ def process_image(image, color_type='red', tolerance=50, fill_method='white'):
         # 如果不支援該顏色，直接回傳原圖
         return image.copy()
 
-    # 使用形態學操作 (膨脹) 來確保邊緣也被包含在遮罩內
-    # 適度的 kernel 避免誤傷正常文字
-    kernel_size = 3
+    # 建立保護遮罩：保護黑色/深灰色印刷字，避免掃描邊緣色差被當成筆跡
+    # 黑字特徵：飽和度偏低 (S < 60) 且 明度偏低 (V < 200)
+    _, s, v = cv2.split(hsv)
+    protect_mask = cv2.bitwise_and(
+        cv2.compare(s, 60, cv2.CMP_LT),
+        cv2.compare(v, 200, cv2.CMP_LT)
+    )
+    # 將保護遮罩稍微膨脹，確保連字的邊緣色差也被保護
+    protect_kernel = np.ones((3, 3), np.uint8)
+    protect_mask = cv2.dilate(protect_mask, protect_kernel, iterations=1)
+
+    # 使用形態學操作 (膨脹) 來確保筆跡邊緣也被包含在遮罩內
+    kernel_size = 5
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
     mask = cv2.dilate(mask, kernel, iterations=2)
+    
+    # 從要去除的遮罩中，排除受保護的黑字區域
+    mask = cv2.bitwise_and(mask, cv2.bitwise_not(protect_mask))
 
     result = image.copy()
 
