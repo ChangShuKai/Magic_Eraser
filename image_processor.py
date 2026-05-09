@@ -47,17 +47,18 @@ def process_image(image, color_type='red', tolerance=50, fill_method='white'):
         return image.copy()
 
     # 建立保護遮罩：保護黑色/深灰色印刷字，避免掃描邊緣色差被當成筆跡
-    # 黑字特徵：飽和度偏低 (S < 60) 且 明度偏低 (V < 200)
+    # 黑字核心特徵：飽和度低 (S < 50) 且 明度非常低 (V < 150)
+    # 我們只保護「真正的黑字核心」，這樣就不會誤保護到紅/藍筆跡的淡淡邊緣 (V通常>150)
     _, s, v = cv2.split(hsv)
-    protect_mask = cv2.bitwise_and(
-        cv2.compare(s, 60, cv2.CMP_LT),
-        cv2.compare(v, 200, cv2.CMP_LT)
+    protect_core = cv2.bitwise_and(
+        cv2.compare(s, 50, cv2.CMP_LT),
+        cv2.compare(v, 150, cv2.CMP_LT)
     )
-    # 將保護遮罩稍微膨脹，確保連字的邊緣色差也被保護
-    protect_kernel = np.ones((3, 3), np.uint8)
-    protect_mask = cv2.dilate(protect_mask, protect_kernel, iterations=1)
+    # 將保護遮罩膨脹 (5x5)，確保黑字核心周圍的「色散邊緣」也被涵蓋保護
+    protect_kernel = np.ones((5, 5), np.uint8)
+    protect_mask = cv2.dilate(protect_core, protect_kernel, iterations=1)
 
-    # 使用形態學操作 (膨脹) 來確保筆跡邊緣也被包含在遮罩內
+    # 使用形態學操作 (膨脹) 來確保筆跡淡淡的邊緣也被完全包含在要刪除的遮罩內
     kernel_size = 5
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
     mask = cv2.dilate(mask, kernel, iterations=2)
