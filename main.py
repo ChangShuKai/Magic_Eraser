@@ -6,8 +6,8 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QPushButton, QLabel, QFileDialog, 
                              QRadioButton, QButtonGroup, QCheckBox, 
                              QGroupBox, QMessageBox, QScrollArea, QFrame, QSizePolicy,
-                             QGraphicsDropShadowEffect, QProgressBar)
-from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal, QPropertyAnimation, QEasingCurve
+                             QGraphicsDropShadowEffect, QProgressBar, QDialog)
+from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap, QPainter, QIcon, QPalette, QBrush, QColor, QFont
 
 from image_processor import process_image, enhance_text, whiten_background
@@ -29,36 +29,39 @@ def create_shadow(blur=20, offset=(0, 10), color=QColor(0, 0, 0, 40)):
     return shadow
 
 class ModernButton(QPushButton):
-    """具有懸停效果的現代按鈕"""
-    def __init__(self, text, parent=None, primary=False):
+    def __init__(self, text, parent=None, color_type="default"):
         super().__init__(text, parent)
-        self.primary = primary
+        self.color_type = color_type
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFixedHeight(45)
         self.update_style()
 
     def update_style(self, hover=False):
-        if self.primary:
-            bg = "rgba(0, 122, 255, 0.9)" if not hover else "rgba(0, 122, 255, 1.0)"
+        if self.color_type == "save":
+            bg = "rgba(33, 150, 243, 0.7)" if not hover else "rgba(33, 150, 243, 0.9)"
             color = "white"
-        else:
+        elif self.color_type == "load":
             bg = "rgba(255, 255, 255, 0.6)" if not hover else "rgba(255, 255, 255, 0.8)"
             color = "#333"
+        elif self.color_type == "process":
+            bg = "rgba(76, 175, 80, 0.7)" if not hover else "rgba(76, 175, 80, 0.9)"
+            color = "white"
+        else:
+            bg = "rgba(255, 255, 255, 0.4)" if not hover else "rgba(255, 255, 255, 0.6)"
+            color = "#222"
         
         self.setStyleSheet(f"""
             QPushButton {{
                 background-color: {bg};
-                border: 1px solid rgba(255, 255, 255, 0.5);
-                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.4);
+                border-radius: 10px;
                 color: {color};
                 font-weight: bold;
                 font-size: 14px;
-                padding: 0 20px;
+                padding: 10px 20px;
             }}
             QPushButton:disabled {{
-                background-color: rgba(200, 200, 200, 0.3);
-                color: #888;
-                border: 1px solid rgba(255, 255, 255, 0.2);
+                background-color: rgba(200, 200, 200, 0.2);
+                color: #999;
             }}
         """)
 
@@ -70,29 +73,50 @@ class ModernButton(QPushButton):
         self.update_style(False)
         super().leaveEvent(event)
 
+class ImageDialog(QDialog):
+    """點擊圖片後彈出的放大預覽視窗"""
+    def __init__(self, pixmap, title="圖片預覽", parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setMinimumSize(800, 600)
+        self.resize(1200, 900)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # 使用滾動區域來容納大圖片
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("background-color: #1a1a1a; border: none;")
+        
+        self.image_label = QLabel()
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # 根據視窗大小縮放圖片，但保持原圖細節（可以稍微大一點）
+        self.pixmap = pixmap
+        self.image_label.setPixmap(self.pixmap)
+        
+        scroll.setWidget(self.image_label)
+        layout.addWidget(scroll)
+        
+        # 加上按鍵說明或關閉按鈕的提示
+        self.setStyleSheet("QDialog { background-color: #1a1a1a; }")
+
 class ResponsiveImageLabel(QLabel):
     def __init__(self, text=""):
         super().__init__(text)
         self.original_pixmap = None
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setStyleSheet("""
-            ResponsiveImageLabel {
-                background-color: rgba(0, 0, 0, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                border-radius: 10px;
-                color: #666;
-            }
-        """)
-        self.setMinimumSize(150, 150)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setStyleSheet("background-color: rgba(255, 255, 255, 0.1); border-radius: 10px; color: #fff;")
+        self.setMinimumSize(100, 100)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip("點擊可放大觀看")
         
     def set_image(self, img_array):
-        if img_array is None:
-            return
+        if img_array is None: return
         img_rgb = cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB)
         h, w, ch = img_rgb.shape
-        bytes_per_line = ch * w
-        qt_img = QImage(img_rgb.data, w, h, bytes_per_line, QImage.Format.Format_RGB888).copy()
+        qt_img = QImage(img_rgb.data, w, h, ch * w, QImage.Format.Format_RGB888).copy()
         self.original_pixmap = QPixmap.fromImage(qt_img)
         self.update()
         
@@ -101,14 +125,17 @@ class ResponsiveImageLabel(QLabel):
         if self.original_pixmap and not self.original_pixmap.isNull():
             painter = QPainter(self)
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-            scaled = self.original_pixmap.scaled(
-                self.size(), 
-                Qt.AspectRatioMode.KeepAspectRatio, 
-                Qt.TransformationMode.SmoothTransformation
-            )
+            scaled = self.original_pixmap.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             x = (self.width() - scaled.width()) // 2
             y = (self.height() - scaled.height()) // 2
             painter.drawPixmap(x, y, scaled)
+
+    def mousePressEvent(self, event):
+        """點擊事件：彈出放大視窗"""
+        if self.original_pixmap and not self.original_pixmap.isNull():
+            dialog = ImageDialog(self.original_pixmap, "放大觀看", self.window())
+            dialog.exec()
+        super().mousePressEvent(event)
 
 class ImageRow(QFrame):
     def __init__(self, file_path, original_image, parent_window):
@@ -117,52 +144,25 @@ class ImageRow(QFrame):
         self.filename = os.path.basename(file_path)
         self.original_image = original_image
         self.processed_image = None
-        self.parent_window = parent_window
-
-        self.setStyleSheet("""
-            ImageRow { 
-                background-color: rgba(255, 255, 255, 0.5); 
-                margin: 5px 10px; 
-                border-radius: 20px; 
-                border: 1px solid rgba(255, 255, 255, 0.6);
-            }
-        """)
-        self.setMinimumHeight(240)
-        self.setGraphicsEffect(create_shadow(15, (0, 5)))
+        self.setStyleSheet("background-color: rgba(255, 255, 255, 0.2); border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.3);")
+        self.setMinimumHeight(200)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(15, 15, 15, 15)
-        layout.setSpacing(15)
-
-        # 資訊區
+        
         info_layout = QVBoxLayout()
         name_label = QLabel(self.filename)
-        name_label.setFixedWidth(140)
-        name_label.setWordWrap(True)
-        name_label.setStyleSheet("color: #222; font-weight: 800; font-size: 13px; background: transparent;")
+        name_label.setStyleSheet("color: #fff; font-weight: bold; background: transparent;")
         info_layout.addWidget(name_label)
-        info_layout.addStretch()
-        
-        self.btn_save = ModernButton("💾 儲存", primary=True)
-        self.btn_save.setFixedWidth(100)
-        self.btn_save.setFixedHeight(35)
+        self.btn_save = ModernButton("💾 儲存", color_type="save")
         self.btn_save.setEnabled(False)
         self.btn_save.clicked.connect(self.save_individual)
         info_layout.addWidget(self.btn_save)
         layout.addLayout(info_layout)
 
-        # 預覽區
-        preview_layout = QHBoxLayout()
         self.orig_preview = ResponsiveImageLabel("原圖")
-        self.proc_preview = ResponsiveImageLabel("等待處理...")
-        preview_layout.addWidget(self.orig_preview, 1)
-        
-        arrow_label = QLabel("➜")
-        arrow_label.setStyleSheet("font-size: 24px; color: #999;")
-        preview_layout.addWidget(arrow_label)
-        
-        preview_layout.addWidget(self.proc_preview, 1)
-        layout.addLayout(preview_layout, 1)
+        self.proc_preview = ResponsiveImageLabel("處理後")
+        layout.addWidget(self.orig_preview, 1)
+        layout.addWidget(self.proc_preview, 1)
 
         self.orig_preview.set_image(self.original_image)
 
@@ -174,52 +174,36 @@ class ImageRow(QFrame):
     def save_individual(self):
         if self.processed_image is not None:
             name, ext = os.path.splitext(self.filename)
-            default_name = f"{name}_processed{ext}"
-            file_name, _ = QFileDialog.getSaveFileName(self, "儲存圖片", default_name, "Images (*.jpg *.png)")
+            file_name, _ = QFileDialog.getSaveFileName(self, "儲存圖片", f"{name}_clean{ext}", "Images (*.jpg *.png)")
             if file_name:
-                is_success, im_buf_arr = cv2.imencode(file_name[-4:], self.processed_image)
-                if is_success:
-                    im_buf_arr.tofile(file_name)
-                    QMessageBox.information(self, "成功", f"圖片 {self.filename} 已儲存。")
-                else:
-                    QMessageBox.warning(self, "錯誤", f"無法儲存圖片 {self.filename}。")
+                cv2.imencode(file_name[-4:], self.processed_image)[1].tofile(file_name)
+                QMessageBox.information(self, "成功", "已儲存。")
 
 class ProcessWorker(QThread):
     progress = pyqtSignal(int)
     finished_row = pyqtSignal(int, object)
     all_done = pyqtSignal()
-    error = pyqtSignal(str)
 
-    def __init__(self, image_rows, color_type, tolerance, fill_method, enhance):
+    def __init__(self, image_rows, color_type, fill_method, enhance):
         super().__init__()
         self.image_rows = image_rows
         self.color_type = color_type
-        self.tolerance = tolerance
         self.fill_method = fill_method
         self.enhance = enhance
 
     def run(self):
-        try:
-            for i, row in enumerate(self.image_rows):
-                processed = process_image(row.original_image, self.color_type, self.tolerance, self.fill_method)
-                if self.enhance:
-                    processed = enhance_text(processed)
-                self.finished_row.emit(i, processed)
-                self.progress.emit(int((i + 1) / len(self.image_rows) * 100))
-            self.all_done.emit()
-        except Exception as e:
-            self.error.emit(str(e))
+        for i, row in enumerate(self.image_rows):
+            processed = process_image(row.original_image, self.color_type, 50, self.fill_method)
+            if self.enhance: processed = enhance_text(processed)
+            self.finished_row.emit(i, processed)
+            self.progress.emit(int((i + 1) / len(self.image_rows) * 100))
+        self.all_done.emit()
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Magic Eraser 專業版")
-        self.resize(1280, 850)
-        
-        icon_path = resource_path("icon.png")
-        if os.path.exists(icon_path):
-            self.setWindowIcon(QIcon(icon_path))
-            
+        self.setWindowTitle("Magic Eraser - 考卷手寫筆記去除工具")
+        self.resize(1100, 800)
         self.image_rows = []
         self.setup_ui()
         self.apply_theme()
@@ -227,256 +211,188 @@ class MainWindow(QMainWindow):
     def apply_theme(self):
         bg_path = resource_path("bg.png")
         if os.path.exists(bg_path):
-            bg_image = QPixmap(bg_path)
+            bg_pixmap = QPixmap(bg_path)
             palette = QPalette()
-            palette.setBrush(QPalette.ColorRole.Window, QBrush(bg_image.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)))
+            palette.setBrush(QPalette.ColorRole.Window, QBrush(bg_pixmap.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)))
             self.setPalette(palette)
             self.setAutoFillBackground(True)
-
-        self.setStyleSheet("""
-            QMainWindow { background-color: #f0f2f5; }
-            QGroupBox {
-                background-color: rgba(255, 255, 255, 0.4);
-                border: 1px solid rgba(255, 255, 255, 0.6);
-                border-radius: 15px;
-                margin-top: 15px;
-                font-weight: bold;
-                padding-top: 10px;
-                color: #444;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top left;
-                padding: 0 15px;
-                color: #222;
-                font-size: 14px;
-            }
-            QRadioButton, QCheckBox, QLabel {
-                color: #333;
-                background: transparent;
-                font-size: 13px;
-            }
-            QRadioButton::indicator, QCheckBox::indicator {
-                width: 18px;
-                height: 18px;
-            }
-            QScrollArea {
-                background-color: transparent;
-                border: none;
-            }
-            QScrollBar:vertical {
-                border: none;
-                background: rgba(0,0,0,0.05);
-                width: 10px;
-                border-radius: 5px;
-            }
-            QScrollBar::handle:vertical {
-                background: rgba(0,0,0,0.1);
-                min-height: 20px;
-                border-radius: 5px;
-            }
-        """)
 
     def setup_ui(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        main_layout = QHBoxLayout(central_widget)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(10)
 
-        # --- 左側側邊欄 ---
-        sidebar = QFrame()
-        sidebar.setFixedWidth(320)
-        sidebar.setStyleSheet("""
-            QFrame {
-                background-color: rgba(255, 255, 255, 0.7);
-                border-right: 1px solid rgba(0, 0, 0, 0.1);
-            }
-        """)
-        sidebar_layout = QVBoxLayout(sidebar)
-        sidebar_layout.setContentsMargins(20, 30, 20, 20)
-        sidebar_layout.setSpacing(20)
-
-        # 標題
-        title_label = QLabel("Magic Eraser")
-        title_label.setStyleSheet("font-size: 28px; font-weight: 900; color: #1a73e8;")
-        subtitle_label = QLabel("考卷手寫筆記清除專家")
-        subtitle_label.setStyleSheet("font-size: 13px; color: #666; margin-bottom: 20px;")
-        sidebar_layout.addWidget(title_label)
-        sidebar_layout.addWidget(subtitle_label)
-
-        # 檔案區
-        file_group = QGroupBox("1. 檔案管理")
-        file_vbox = QVBoxLayout(file_group)
-        self.btn_load = ModernButton("📂 載入圖片 (多選)")
-        self.btn_load.clicked.connect(self.load_images)
-        self.btn_save_all = ModernButton("💾 全部儲存", primary=True)
-        self.btn_save_all.clicked.connect(self.save_all)
+        # --- 上方控制面板 (橫向) ---
+        control_panel = QHBoxLayout()
+        
+        # 檔案操作
+        file_group = QGroupBox("檔案操作")
+        file_group.setStyleSheet("QGroupBox { background-color: rgba(255, 255, 255, 0.3); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 15px; padding-top: 20px; font-weight: bold; color: #333; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; padding: 0 10px; }")
+        file_layout = QHBoxLayout(file_group)
+        self.btn_save_all = ModernButton("💾 全部儲存", color_type="save")
         self.btn_save_all.setEnabled(False)
-        file_vbox.addWidget(self.btn_load)
-        file_vbox.addWidget(self.btn_save_all)
-        sidebar_layout.addWidget(file_group)
+        self.btn_save_all.clicked.connect(self.save_all)
+        self.btn_load = ModernButton("📂 載入圖片 (支援多選)", color_type="load")
+        self.btn_load.clicked.connect(self.load_images)
+        file_layout.addWidget(self.btn_save_all)
+        file_layout.addWidget(self.btn_load)
+        control_panel.addWidget(file_group)
 
-        # 設定區
-        settings_group = QGroupBox("2. 處理設定")
-        settings_vbox = QVBoxLayout(settings_group)
+        # 處理設定
+        settings_group = QGroupBox("處理設定")
+        settings_group.setStyleSheet("QGroupBox { background-color: rgba(255, 255, 255, 0.3); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 15px; padding-top: 20px; font-weight: bold; color: #333; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; padding: 0 10px; }")
+        settings_layout = QHBoxLayout(settings_group)
+
+        settings_group2 = QGroupBox("說明")
+        settings_group2.setStyleSheet("QGroupBox { background-color: rgba(255, 255, 255, 0.3); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 15px; padding-top: 20px; font-weight: bold; color: #333; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; padding: 0 10px; }")
+        settings_layout2 = QVBoxLayout(settings_group2)
         
-        settings_vbox.addWidget(QLabel("移除模式:"))
-        self.radio_both = QRadioButton("紅 + 藍 (快速)")
-        self.radio_red = QRadioButton("僅紅色")
-        self.radio_blue = QRadioButton("僅藍色")
-        self.radio_ai_all = QRadioButton("AI 全能 (含黑字)")
-        self.radio_ai_all.setStyleSheet("color: #d93025; font-weight: bold;")
+        l1=QLabel("1. 先選取要清除手寫筆記的圖片")
+        l2=QLabel("2. 設定要清洗的顏色")
+        l3=QLabel("3. 按下「清除手寫筆記」按鈕")
+        l4=QLabel("4. 觀看處理結果(或直接下載)")
+        l5=QLabel("5. 按下「全部儲存」按鈕儲存所有圖片或單張圖片")
+
+        settings_layout2.addWidget(l1)
+        settings_layout2.addWidget(l2)
+        settings_layout2.addWidget(l3)
+        settings_layout2.addWidget(l4)
+        settings_layout2.addWidget(l5)
+
+        settings_group3 = QGroupBox("開發者")
+        settings_group3.setStyleSheet("QGroupBox { background-color: rgba(255, 255, 255, 0.3); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 10px; padding-top: 20px; font-weight: bold; color: #333; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; padding: 0 10px; }")
+        settings_layout3 = QVBoxLayout(settings_group3)
+        settings_layout3.setSpacing(1)
+
+        settings_layout3.addStretch()
+
+        De = QLabel("Developer : ChangShuKai")
+        De2 = QLabel("Create by : Six Star Culture")
+        De.setStyleSheet("""
+            font-size: 20px; 
+            font-weight: bold; 
+            color: #333;
+            qproperty-alignment: 'AlignCenter';
+        """)
+        De2.setStyleSheet("""
+            font-size: 20px; 
+            font-weight: bold; 
+            color: #333;
+            qproperty-alignment: 'AlignCenter';
+        """)
+        settings_layout3.addWidget(De)
+        settings_layout3.addWidget(De2)
+        settings_layout3.addStretch()
+
+        # 左側選項
+        options_vbox = QVBoxLayout()
+        
+        # 顏色行
+        color_row = QHBoxLayout()
+        color_row.addWidget(QLabel("要去除的顏色:"))
+        self.radio_red = QRadioButton("紅色")
+        self.radio_blue = QRadioButton("藍色")
+        self.radio_both = QRadioButton("紅+藍皆去除")
         self.radio_both.setChecked(True)
-        
         self.color_group = QButtonGroup()
-        for rb in [self.radio_both, self.radio_red, self.radio_blue, self.radio_ai_all]:
-            self.color_group.addButton(rb)
-            settings_vbox.addWidget(rb)
+        for r in [self.radio_red, self.radio_blue, self.radio_both]:
+            self.color_group.addButton(r)
+            color_row.addWidget(r)
+        options_vbox.addLayout(color_row)
 
-        settings_vbox.addSpacing(10)
-        settings_vbox.addWidget(QLabel("進階功能:"))
+        # 勾選行
+        check_row = QHBoxLayout()
+        self.cb_inpaint = QCheckBox("使用智慧修補 (修補殘留網點)")
         self.cb_enhance = QCheckBox("增強黑白對比")
-        self.cb_ai_fill = QCheckBox("AI 神經修補 (RTX)")
-        self.cb_ai_fill.setStyleSheet("color: #188038; font-weight: bold;")
-        self.cb_inpaint = QCheckBox("傳統修補")
-        
-        # 預設非 AI
-        self.cb_ai_fill.setChecked(False) 
         self.cb_enhance.setChecked(True)
-
-        settings_vbox.addWidget(self.cb_enhance)
-        settings_vbox.addWidget(self.cb_ai_fill)
-        settings_vbox.addWidget(self.cb_inpaint)
-        sidebar_layout.addWidget(settings_group)
+        check_row.addWidget(self.cb_inpaint)
+        check_row.addWidget(self.cb_enhance)
+        options_vbox.addLayout(check_row)
+        
+        settings_layout.addLayout(options_vbox)
+        settings_layout.addStretch()
 
         # 執行按鈕
-        sidebar_layout.addStretch()
-        self.btn_process_all = ModernButton("✨ 開始轉換 ✨", primary=True)
-        self.btn_process_all.setFixedHeight(55)
-        self.btn_process_all.setStyleSheet(self.btn_process_all.styleSheet() + "font-size: 18px;")
-        self.btn_process_all.clicked.connect(self.process_all)
+        self.btn_process_all = ModernButton("✨ 清除手寫筆記 ✨", color_type="process")
+        self.btn_process_all.setMinimumHeight(60)
         self.btn_process_all.setEnabled(False)
-        sidebar_layout.addWidget(self.btn_process_all)
+        self.btn_process_all.clicked.connect(self.process_all)
+        settings_layout.addWidget(self.btn_process_all)
+        
+        control_panel.addWidget(settings_group3, 1)
+        control_panel.addWidget(settings_group2, 1)
+        control_panel.addWidget(settings_group, 1)
+        main_layout.addLayout(control_panel)
 
-        main_layout.addWidget(sidebar)
-
-        # --- 右側主顯示區 ---
-        right_panel = QWidget()
-        right_layout = QVBoxLayout(right_panel)
-        right_layout.setContentsMargins(10, 10, 10, 10)
-
-        # 進度條
+        # --- 進度條 ---
         self.progress_bar = QProgressBar()
-        self.progress_bar.setFixedHeight(6)
+        self.progress_bar.setFixedHeight(8)
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setStyleSheet("""
-            QProgressBar { background: rgba(0,0,0,0.05); border: none; border-radius: 3px; }
-            QProgressBar::chunk { background: #1a73e8; border-radius: 3px; }
-        """)
+        self.progress_bar.setStyleSheet("QProgressBar { background: rgba(255, 255, 255, 0.2); border-radius: 4px; border: none; } QProgressBar::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #4caf50, stop:1 #81c784); border-radius: 4px; }")
         self.progress_bar.hide()
-        right_layout.addWidget(self.progress_bar)
+        main_layout.addWidget(self.progress_bar)
 
+        # --- 列表區 ---
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setStyleSheet("background: transparent; border: none;")
         self.scroll_content = QWidget()
+        self.scroll_content.setStyleSheet("background: transparent; color: black; font-weight: bold; ") 
         self.list_layout = QVBoxLayout(self.scroll_content)
-        self.list_layout.setContentsMargins(10, 10, 10, 10)
-        self.list_layout.setSpacing(5)
         self.list_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.scroll_area.setWidget(self.scroll_content)
-        right_layout.addWidget(self.scroll_area)
-
-        # 初始提示
-        self.empty_label = QLabel("請點擊左側「載入圖片」開始使用")
-        self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.empty_label.setStyleSheet("color: #999; font-size: 18px;")
-        self.list_layout.addWidget(self.empty_label)
-
-        main_layout.addWidget(right_panel, 1)
+        main_layout.addWidget(self.scroll_area, 1)
 
     def load_images(self):
-        file_names, _ = QFileDialog.getOpenFileNames(self, "開啟圖片 (可多選)", "", "Images (*.png *.jpg *.jpeg *.bmp)")
-        if not file_names: return
+        files, _ = QFileDialog.getOpenFileNames(self, "開啟圖片", "", "Images (*.png *.jpg *.jpeg *.bmp)")
+        if not files: return
         self.clear_list()
-        self.empty_label.hide()
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        for file_name in file_names:
-            QApplication.processEvents()
-            img = cv2.imdecode(np.fromfile(file_name, dtype=np.uint8), cv2.IMREAD_COLOR)
+        for f in files:
+            img = cv2.imdecode(np.fromfile(f, dtype=np.uint8), cv2.IMREAD_COLOR)
             if img is not None:
                 img = whiten_background(img)
-                row_widget = ImageRow(file_name, img, self)
-                self.image_rows.append(row_widget)
-                self.list_layout.addWidget(row_widget)
+                row = ImageRow(f, img, self)
+                self.image_rows.append(row)
+                self.list_layout.addWidget(row)
         QApplication.restoreOverrideCursor()
-        if self.image_rows:
-            self.btn_process_all.setEnabled(True)
-        else:
-            self.empty_label.show()
+        self.btn_process_all.setEnabled(bool(self.image_rows))
 
     def clear_list(self):
-        for i in reversed(range(self.list_layout.count())): 
+        for i in reversed(range(self.list_layout.count())):
             widget = self.list_layout.itemAt(i).widget()
-            if widget is not None and widget != self.empty_label:
-                widget.setParent(None)
-                widget.deleteLater()
+            if widget: widget.deleteLater()
         self.image_rows.clear()
         self.btn_process_all.setEnabled(False)
         self.btn_save_all.setEnabled(False)
 
     def process_all(self):
-        if not self.image_rows: return
         self.btn_process_all.setEnabled(False)
-        self.btn_load.setEnabled(False)
         self.progress_bar.show()
-        self.progress_bar.setValue(0)
-        
-        if self.radio_ai_all.isChecked(): color_type = 'ai_all'
-        elif self.radio_both.isChecked(): color_type = 'both'
-        elif self.radio_red.isChecked(): color_type = 'red'
-        else: color_type = 'blue'
-            
-        if self.cb_ai_fill.isChecked(): fill_method = 'ai'
-        elif self.cb_inpaint.isChecked(): fill_method = 'inpaint'
-        else: fill_method = 'white'
-        
-        self.worker = ProcessWorker(self.image_rows, color_type, 0, fill_method, self.cb_enhance.isChecked())
-        self.worker.finished_row.connect(self.on_row_finished)
+        color_type = 'both' if self.radio_both.isChecked() else ('red' if self.radio_red.isChecked() else 'blue')
+        fill_method = 'inpaint' if self.cb_inpaint.isChecked() else 'white'
+        self.worker = ProcessWorker(self.image_rows, color_type, fill_method, self.cb_enhance.isChecked())
+        self.worker.finished_row.connect(lambda idx, img: self.image_rows[idx].set_processed_image(img))
         self.worker.progress.connect(self.progress_bar.setValue)
-        self.worker.all_done.connect(self.on_process_finished)
-        self.worker.error.connect(self.on_process_error)
+        self.worker.all_done.connect(self.on_process_done)
         self.worker.start()
 
-    def on_row_finished(self, index, processed_image):
-        self.image_rows[index].set_processed_image(processed_image)
-
-    def on_process_finished(self):
+    def on_process_done(self):
         self.btn_save_all.setEnabled(True)
         self.btn_process_all.setEnabled(True)
-        self.btn_load.setEnabled(True)
         self.progress_bar.hide()
-        QMessageBox.information(self, "完成", "所有圖片處理完成！")
-
-    def on_process_error(self, msg):
-        self.progress_bar.hide()
-        self.btn_process_all.setEnabled(True)
-        self.btn_load.setEnabled(True)
-        QMessageBox.critical(self, "錯誤", f"處理失敗: {msg}")
+        QMessageBox.information(self, "完成", "清除完成！")
 
     def save_all(self):
-        dir_path = QFileDialog.getExistingDirectory(self, "選擇儲存資料夾")
-        if not dir_path: return
-        success = 0
+        path = QFileDialog.getExistingDirectory(self, "選擇資料夾")
+        if not path: return
         for row in self.image_rows:
             if row.processed_image is not None:
                 name, ext = os.path.splitext(row.filename)
-                save_path = os.path.join(dir_path, f"{name}_processed{ext or '.jpg'}")
-                is_success, buf = cv2.imencode(ext or '.jpg', row.processed_image)
-                if is_success:
-                    buf.tofile(save_path)
-                    success += 1
-        QMessageBox.information(self, "完成", f"成功儲存 {success} 張圖片。")
+                cv2.imencode(ext or '.jpg', row.processed_image)[1].tofile(os.path.join(path, f"{name}_clean{ext or '.jpg'}"))
+        QMessageBox.information(self, "完成", "已全部儲存。")
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
