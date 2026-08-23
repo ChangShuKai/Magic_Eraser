@@ -1,0 +1,15 @@
+# 忽略 Vercel 不需要打包到 Serverless Function 的所有檔案與資料夾
+build/
+dist/
+train_pipeline/
+*.spec
+__pycache__/
+.git/
+.venv/
+venv/
+requirements-desktop.txt
+local_server.py
+main.py
+installer_beautiful.py
+*.png
+*.ico
