@@ -1,15 +1,4 @@
-PyQt6
-opencv-python
-numpy
-Pillow
-simple-lama-inpainting
-easyocr
-
-# ============================================================
-# 重要：要發揮 RTX 3060 的效能，請安裝 CUDA 版 PyTorch
-# 請在 .venv 環境中執行以下指令：
-#
-#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-#
-# 安裝後，easyocr 與 simple-lama-inpainting 皆會自動使用 GPU。
-# ============================================================
+Flask==3.0.0
+Werkzeug==3.0.0
+opencv-python-headless==4.8.1.78
+numpy==1.26.0
