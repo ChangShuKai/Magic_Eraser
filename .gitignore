@@ -1,0 +1,9 @@
+__pycache__/
+build/
+dist/
+*.spec
+*.pyc
+train_pipeline/__pycache__/
+.pytest_cache/
+train_pipeline/checkpoints/
+*.pth

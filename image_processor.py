@@ -1,113 +1,139 @@
 import cv2
 import numpy as np
 
-def process_image(image, color_type='both', tolerance=50, fill_method='white'):
+def process_image(image, color_type='red', tolerance=50, fill_method='white'):
     """
-    去除圖片中的手寫筆記（傳統模式）。
-    
+    去除圖片中指定顏色的手寫筆記
     :param image: OpenCV BGR image (numpy array)
-    :param color_type: 'red', 'blue', 'both'
-    :param tolerance: 容差值（保留相容性）
-    :param fill_method: 'white' (填白), 'inpaint' (OpenCV修補)
+    :param color_type: 'red', 'blue', 或 'both'
+    :param tolerance: 容差值 (0-100)，影響遮罩膨脹程度和範圍
+    :param fill_method: 'white' (直接填白) 或 'inpaint' (周圍修補)
     :return: 處理後的 OpenCV BGR image
     """
     if image is None:
         return None
 
+    # 轉換為 HSV 色彩空間
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-    # ── 顏色模式：精準去除彩色筆跡（快速，不含黑色）──
-    s_lower = 65
-    v_lower = 40
-
+    
+    # 為了能徹底清除淡色筆跡與邊緣暈染，將飽和度與明度閾值進一步降低
+    s_lower = 15
+    v_lower = 15
+    
+    # 紅色與粉紅色的 HSV 範圍 (OpenCV的 H 範圍是 0-179)
     lower_red1 = np.array([0, s_lower, v_lower])
-    upper_red1 = np.array([10, 255, 255])
+    upper_red1 = np.array([20, 255, 255])
     mask_red1 = cv2.inRange(hsv, lower_red1, upper_red1)
 
-    lower_red2 = np.array([170, s_lower, v_lower])
+    lower_red2 = np.array([140, s_lower, v_lower])
     upper_red2 = np.array([180, 255, 255])
     mask_red2 = cv2.inRange(hsv, lower_red2, upper_red2)
+    
     mask_red = mask_red1 + mask_red2
 
-    lower_blue = np.array([90, s_lower, v_lower])
-    upper_blue = np.array([130, 255, 255])
+    # 藍色與淺藍色的 HSV 範圍
+    lower_blue = np.array([80, s_lower, v_lower])
+    upper_blue = np.array([140, 255, 255])
     mask_blue = cv2.inRange(hsv, lower_blue, upper_blue)
 
     if color_type == 'red':
         mask = mask_red
     elif color_type == 'blue':
         mask = mask_blue
-    else:  # 'both'
-        mask = cv2.bitwise_or(mask_red, mask_blue)
+    elif color_type == 'both':
+        # "除了黑色都去除"：擷取所有色相 (Hue 0~179)
+        # 只要飽和度(S)與明度(V)高於閾值，即視為彩色筆跡
+        lower_all = np.array([0, s_lower, v_lower])
+        upper_all = np.array([179, 255, 255])
+        mask = cv2.inRange(hsv, lower_all, upper_all)
+    else:
+        return image.copy()
 
-    # ── 保護黑色印刷字（建立安全緩衝區）──
+    # 建立保護遮罩：保護黑色/深灰色印刷字，避免掃描邊緣色差被當成筆跡
+    # 黑字核心特徵：飽和度低 (S < 50) 且 明度非常低 (V < 150)
+    # 我們只保護「真正的黑字核心」，這樣就不會誤保護到紅/藍筆跡的淡淡邊緣 (V通常>150)
     _, s, v = cv2.split(hsv)
     protect_core = cv2.bitwise_and(
-        cv2.compare(s, 40, cv2.CMP_LT),
-        cv2.compare(v, 180, cv2.CMP_LT)
+        cv2.compare(s, 50, cv2.CMP_LT),
+        cv2.compare(v, 150, cv2.CMP_LT)
     )
-    protect_kernel = np.ones((5, 5), np.uint8)
-    protect_mask = cv2.dilate(protect_core, protect_kernel, iterations=4)
+    # 將保護遮罩稍微膨脹 (3x3)，確保黑字邊緣被保護，但不過度影響附近筆跡
+    protect_kernel = np.ones((3, 3), np.uint8)
+    protect_mask = cv2.dilate(protect_core, protect_kernel, iterations=1)
 
-    # 彩色遮罩稍微膨脹
-    kernel = np.ones((3, 3), np.uint8)
-    mask = cv2.dilate(mask, kernel, iterations=1)
-
-    # 從彩色遮罩中排除印刷字保護區
+    # 使用形態學操作 (膨脹) 來確保筆跡淡淡的邊緣也被完全包含在要刪除的遮罩內
+    kernel_size = 5
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    mask = cv2.dilate(mask, kernel, iterations=2)
+    
+    # 從要去除的遮罩中，排除受保護的黑字區域
     mask = cv2.bitwise_and(mask, cv2.bitwise_not(protect_mask))
 
-    return _apply_fill(image, mask, fill_method)
-
-
-def _apply_fill(image, mask, fill_method):
-    """根據選擇的填補模式，將遮罩區域填補。"""
     result = image.copy()
-    if fill_method == 'white':
-        result[mask > 0] = (255, 255, 255)
-    else:  # 'inpaint'（OpenCV 傳統修補）
-        result = cv2.inpaint(result, mask, 3, cv2.INPAINT_TELEA)
-    return result
 
+    if fill_method == 'white':
+        # 直接將遮罩區域塗白
+        result[mask > 0] = (255, 255, 255)
+    else:
+        # 使用 inpainting 修補 (較慢，但對於非純白背景可能較好)
+        # 這裡提供作為一個進階選項
+        inpaint_radius = 3
+        result = cv2.inpaint(result, mask, inpaint_radius, cv2.INPAINT_TELEA)
+
+    return result
 
 def whiten_background(image):
     """
-    更專業的背景去污與光照補償。
+    保留顏色的背景白化處理 (去除灰底和陰影)。
+    轉為灰階後使用膨脹操作提取背景，再利用除法正規化讓灰底變白，同時保留墨水與印刷字顏色。
     """
     if image is None:
         return None
-
+        
+    # 將圖像轉換為灰階，因為在灰階中，不論藍色或紅色筆跡都比白紙背景「暗」
+    # 這樣膨脹(Dilate)操作就能正確吃掉所有字跡，提取出純淨的背景光照
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    h, w = gray.shape
-    scale = 0.25
-    small = cv2.resize(gray, (0, 0), fx=scale, fy=scale)
     
-    kernel_size = max(1, int(31 * scale))
-    if kernel_size % 2 == 0: kernel_size += 1
+    # 為了避免高解析度圖片運算過久導致當機，先將圖片縮小再做膨脹
+    h_orig, w_orig = gray.shape
+    scale = 0.2 # 縮小到 1/5 提升百倍速度
+    gray_small = cv2.resize(gray, (0, 0), fx=scale, fy=scale)
     
-    bg_small = cv2.dilate(small, np.ones((kernel_size, kernel_size), np.uint8))
-    bg_small = cv2.GaussianBlur(bg_small, (kernel_size, kernel_size), 0)
+    # 使用膨脹(Dilate)來找背景，能有效吃掉深色字跡，留下亮色背景
+    kernel = np.ones((11, 11), np.uint8)
+    bg_gray_small = cv2.dilate(gray_small, kernel)
     
-    bg = cv2.resize(bg_small, (w, h))
-    bg = np.maximum(bg, 1)
-
-    image_f = image.astype(np.float32)
-    bg_f = bg.astype(np.float32)[:, :, np.newaxis]
+    # 放大回原圖尺寸
+    bg_gray = cv2.resize(bg_gray_small, (w_orig, h_orig))
     
-    result = (image_f / bg_f) * 255.0
-    result = np.clip(result, 0, 255).astype(np.uint8)
-    result = cv2.convertScaleAbs(result, alpha=1.1, beta=-10)
+    # 為了安全起見，避免除以 0
+    bg_gray = np.maximum(bg_gray, 1)
+    
+    # 將原始 BGR 三個通道分別除以背景 (灰階)
+    # 這樣原本是背景的像素就會變成 255 (純白)，而且能保留顏色比例
+    image_float = image.astype(np.float32)
+    bg_gray_float = bg_gray.astype(np.float32)
+    
+    # bg_gray_float 只有單通道，需要變成 (H, W, 1) 以便廣播除法
+    bg_gray_float = np.expand_dims(bg_gray_float, axis=-1)
+    
+    result = np.clip((image_float / bg_gray_float) * 255.0, 0, 255).astype(np.uint8)
+    
     return result
-
 
 def enhance_text(image):
     """
-    增強文字清晰度。
+    可選：增強黑白對比，讓考卷看起來更乾淨
     """
     if image is None:
         return None
+    # 轉灰階
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
-    enhanced_gray = clahe.apply(gray)
-    kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
-    sharpened = cv2.filter2D(enhanced_gray, -1, kernel)
-    return cv2.cvtColor(sharpened, cv2.COLOR_GRAY2BGR)
+    # 自適應二值化 (可讓背景變白，文字變黑)
+    # 這邊僅為示範，實際應用可能會讓圖片太像純掃描檔
+    # 如果使用者只是要去除手寫，不一定要套用這個
+    enhanced = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+                                     cv2.THRESH_BINARY, 21, 10)
+    # 轉回 BGR 以便統一介面顯示
+    enhanced_bgr = cv2.cvtColor(enhanced, cv2.COLOR_GRAY2BGR)
+    return enhanced_bgr
