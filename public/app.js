@@ -89,9 +89,8 @@ processBtn.addEventListener('click', async () => {
     formData.append('color_type', colorType);
     formData.append('fill_method', useInpaint ? 'inpaint' : 'white');
     formData.append('enhance', enhance ? 'true' : 'false');
-    
     try {
-        const response = await fetch('/api/process', {
+        const response = await fetch('/api/index', {
             method: 'POST',
             body: formData
         });

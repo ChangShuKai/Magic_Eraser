@@ -11,7 +11,7 @@ from image_processor import process_image, enhance_text, whiten_background
 
 app = Flask(__name__)
 
-@app.route('/api/process', methods=['POST'])
+@app.route('/api/index', methods=['POST'])
 def process():
     """處理圖片上傳與轉換的 API (Vercel Serverless Function)"""
     if 'image' not in request.files:

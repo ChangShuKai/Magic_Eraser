@@ -123,7 +123,7 @@ web_app.add_middleware(
     image=image,
     concurrency_limit=5,
     timeout=30,
-    keep_warm=0
+    min_containers=0
 )
 class CleanerService:
     @modal.enter()
