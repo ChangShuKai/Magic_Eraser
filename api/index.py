@@ -41,9 +41,8 @@ def process():
         # 1. 套用背景白化 (與 main.py 邏輯一致)
         img = whiten_background(img)
         
-        # 2. 執行影像處理去除筆跡 (與 main.py 一樣跑 5 次以獲得較佳效果)
-        for _ in range(5):
-            img = process_image(img, color_type=color_type, tolerance=0, fill_method=fill_method)
+        # 2. 執行影像處理去除筆跡 (與 main.py 一致，只跑 1 次以提升效能)
+        img = process_image(img, color_type=color_type, tolerance=50, fill_method=fill_method)
             
         # 3. 根據選項決定是否增強對比
         if enhance:
