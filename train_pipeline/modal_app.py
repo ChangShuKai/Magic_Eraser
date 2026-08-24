@@ -98,13 +98,32 @@ class MobileNetV3UNet(nn.Module):
         
         return out
 
+import os
+import glob
+
+# 尋找最新的模型權重檔
+checkpoint_dir = os.path.join(os.path.dirname(__file__), "checkpoints")
+pth_files = glob.glob(os.path.join(checkpoint_dir, "model_epoch_*.pth"))
+if not pth_files:
+    raise FileNotFoundError("找不到任何 .pth 模型檔！請確認 checkpoints 資料夾內有模型。")
+
+def get_epoch_num(f):
+    try:
+        basename = os.path.basename(f)
+        return int(basename.replace("model_epoch_", "").replace(".pth", ""))
+    except:
+        return -1
+
+latest_pth = max(pth_files, key=get_epoch_num)
+print(f"Deploying with latest model: {latest_pth}")
+
 # 1. 定義雲端執行環境與安裝套件
 app = modal.App("exam-cleaner")
 
 image = (
     modal.Image.debian_slim()
     .pip_install("torch", "torchvision", "pillow", "fastapi[standard]")
-    .add_local_file("checkpoints/model_epoch_14.pth", remote_path="/root/model.pth")
+    .add_local_file(latest_pth, remote_path="/root/model.pth")
 )
 
 # 2. 建立 FastAPI 實例並開啟 CORS（讓 Vercel 前端可以正常呼叫）
@@ -134,9 +153,10 @@ class CleanerService:
         self.model.to(self.device).eval()
 
     @modal.fastapi_endpoint(method="POST")
-    def clean_image(self, file: bytes):
+    async def clean_image(self, image: UploadFile = File(...)):
         # 讀取前端上傳的圖片 (轉為 L 灰階，因為模型吃單通道)
-        img = Image.open(io.BytesIO(file)).convert("L")
+        img_bytes = await image.read()
+        img = Image.open(io.BytesIO(img_bytes)).convert("L")
         
         # 影像前處理
         transform = T.ToTensor()
