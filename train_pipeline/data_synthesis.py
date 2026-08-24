@@ -46,27 +46,69 @@ class SyntheticExamDataset(Dataset):
         draw = ImageDraw.Draw(img)
         
         # 隨機繪製完美幾何圖形/圖表 (教導 AI 保留圖表)
-        if random.random() < 0.4:
-            chart_type = random.choice(['grid', 'axes', 'shapes'])
+        if random.random() < 0.6:  # 提高出現圖表的機率到 60%
+            chart_type = random.choice(['grid', 'axes', 'shapes', 'bar_chart', 'parabola', 'scatter'])
             if chart_type == 'grid':
                 # 繪製方格網底
-                step = random.randint(20, 50)
+                step = random.randint(10, 30)
                 for i in range(0, self.patch_size, step):
-                    draw.line([(0, i), (self.patch_size, i)], fill=random.randint(100, 200), width=1)
-                    draw.line([(i, 0), (i, self.patch_size)], fill=random.randint(100, 200), width=1)
+                    draw.line([(0, i), (self.patch_size, i)], fill=random.randint(50, 150), width=1)
+                    draw.line([(i, 0), (i, self.patch_size)], fill=random.randint(50, 150), width=1)
             elif chart_type == 'axes':
-                # 繪製 XY 坐標軸
+                # 繪製帶有刻度的 XY 坐標軸與折線
                 cx, cy = random.randint(100, 400), random.randint(100, 400)
-                draw.line([(cx, 0), (cx, self.patch_size)], fill=0, width=random.randint(1, 2))
-                draw.line([(0, cy), (self.patch_size, cy)], fill=0, width=random.randint(1, 2))
-                # 畫幾條完美的折線
-                draw.line([(cx, cy), (cx+100, cy-100), (cx+200, cy-50)], fill=random.randint(0, 50), width=2)
+                draw.line([(cx, 0), (cx, self.patch_size)], fill=0, width=2)
+                draw.line([(0, cy), (self.patch_size, cy)], fill=0, width=2)
+                # 畫刻度
+                for tick in range(0, self.patch_size, 20):
+                    draw.line([(cx-5, tick), (cx+5, tick)], fill=0, width=1)
+                    draw.line([(tick, cy-5), (tick, cy+5)], fill=0, width=1)
+                # 畫多條複雜折線
+                points = [(random.randint(0, self.patch_size), random.randint(0, self.patch_size)) for _ in range(5)]
+                points.sort(key=lambda p: p[0])
+                draw.line(points, fill=random.randint(0, 100), width=random.randint(1, 3))
             elif chart_type == 'shapes':
-                # 繪製完美的圓形與矩形
-                x, y = random.randint(50, 300), random.randint(50, 300)
-                r = random.randint(50, 150)
-                draw.ellipse([x, y, x+r, y+r], outline=0, width=2)
-                draw.rectangle([x-50, y-50, x+50, y+50], outline=0, width=2)
+                # 繪製幾何圖形 (包含填滿與空心)
+                for _ in range(random.randint(2, 5)):
+                    x, y = random.randint(50, 400), random.randint(50, 400)
+                    r = random.randint(30, 100)
+                    if random.random() > 0.5:
+                        draw.ellipse([x, y, x+r, y+r], outline=0, width=2)
+                    else:
+                        draw.rectangle([x, y, x+r, y+r], fill=random.randint(150, 220), outline=0, width=2)
+            elif chart_type == 'bar_chart':
+                # 繪製直方圖/長條圖
+                base_y = random.randint(300, 450)
+                draw.line([(50, base_y), (450, base_y)], fill=0, width=2)
+                for bx in range(70, 400, 40):
+                    h = random.randint(20, 200)
+                    draw.rectangle([bx, base_y-h, bx+20, base_y], fill=random.randint(50, 200), outline=0, width=1)
+            elif chart_type == 'parabola':
+                # 繪製平滑的拋物線 (函數圖形)
+                cx, cy = random.randint(200, 300), random.randint(300, 450)
+                draw.line([(cx, 0), (cx, self.patch_size)], fill=0, width=2)
+                draw.line([(0, cy), (self.patch_size, cy)], fill=0, width=2)
+                a = random.uniform(-0.02, 0.02)
+                curve_points = []
+                for px in range(0, self.patch_size, 5):
+                    dx = px - cx
+                    py = cy - int(a * dx * dx)
+                    if 0 <= py <= self.patch_size:
+                        curve_points.append((px, py))
+                if len(curve_points) > 2:
+                    draw.line(curve_points, fill=0, width=2)
+            elif chart_type == 'scatter':
+                # 繪製散佈圖 (密集的點)
+                cx, cy = random.randint(100, 400), random.randint(100, 400)
+                draw.line([(cx, 0), (cx, self.patch_size)], fill=0, width=2)
+                draw.line([(0, cy), (self.patch_size, cy)], fill=0, width=2)
+                for _ in range(random.randint(30, 100)):
+                    px, py = random.randint(50, 450), random.randint(50, 450)
+                    r = random.randint(2, 5)
+                    if random.random() > 0.5:
+                        draw.ellipse([px-r, py-r, px+r, py+r], fill=0)
+                    else:
+                        draw.polygon([(px, py-r), (px-r, py+r), (px+r, py+r)], fill=0)
 
         # 隨機繪製一些橫線 (模擬筆記本或底線)
         elif random.random() < 0.3:

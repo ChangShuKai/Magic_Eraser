@@ -37,9 +37,12 @@ def ssim(img1, img2, window_size=11, size_average=True):
 class CompositeLoss(nn.Module):
     def __init__(self, lambda_l1=1.0, lambda_ssim=0.5, lambda_sobel=0.5):
         super(CompositeLoss, self).__init__()
-        self.lambda_l1 = lambda_l1
-        self.lambda_ssim = lambda_ssim
-        self.lambda_sobel = lambda_sobel
+        self.l1 = nn.L1Loss()
+        
+        # 調整權重：讓模型更重視「保留原始結構(SSIM)」與「邊緣(Sobel)」，降低背景留白的壓力
+        self.lambda_l1 = 0.5    # 原本是 1.0
+        self.lambda_ssim = 1.0  # 原本是 0.5
+        self.lambda_sobel = 1.0 # 原本是 0.5
         
         # Sobel filters
         sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
