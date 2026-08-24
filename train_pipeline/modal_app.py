@@ -138,12 +138,13 @@ web_app.add_middleware(
 
 # 3. 定義 GPU 模型類別
 @app.cls(
-    gpu="L4",
+    gpu="T4",                     # 使用高 CP 值的 T4 GPU
     image=image,
-    max_containers=5,
-    timeout=30,
-    min_containers=0
+    max_containers=100,           # 在高流量時允許自動擴展到 100 台機器同時運算
+    timeout=60,
+    min_containers=1              # 隨時保持 1 台機器常駐 (真正零冷啟動，隨叫隨到)
 )
+@modal.concurrent(max_inputs=15)  # 新版寫法：單台機器可同時並發處理 15 個請求
 class CleanerService:
     @modal.enter()
     def load_model(self):
