@@ -1,7 +1,16 @@
 // --- Supabase Setup ---
 const SUPABASE_URL = 'https://qrjkjdlwhmihxkqnrxzu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyamtqZGx3aG1paHhrcW5yeHp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDYzMjYsImV4cCI6MjEwMzEyMjMyNn0.Z4VAfv6SIUvibLv5h02Arp9gq3jeCPWwBc_S1zuNUDA';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabaseClient = null;
+try {
+    if (window.supabase) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } else {
+        console.warn("Supabase CDN not loaded.");
+    }
+} catch (e) {
+    console.error("Supabase init error:", e);
+}
 
 // Auth UI Elements
 const loginBtn = document.getElementById('loginBtn');
@@ -26,8 +35,13 @@ let isLoginMode = true;
 
 // Initialize Auth State
 async function checkUser() {
-    const { data: { user } } = await supabase.auth.getUser();
-    updateAuthUI(user);
+    if (!supabaseClient) return;
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        updateAuthUI(user);
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 function updateAuthUI(user) {
@@ -61,7 +75,11 @@ function closeAuthModal() {
 }
 
 googleSignInBtn.addEventListener('click', async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    if (!supabaseClient) {
+        alert("Supabase 無法載入，請重新整理或關閉廣告阻擋器！");
+        return;
+    }
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
     });
     if (error) {
@@ -85,6 +103,10 @@ authSwitchLink.addEventListener('click', (e) => {
 // Handle Auth Submit
 authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!supabaseClient) {
+        alert("Supabase 無法載入，請重新整理或關閉廣告阻擋器！");
+        return;
+    }
     authError.style.display = 'none';
     authSubmitBtn.disabled = true;
     authSubmitBtn.innerText = '請稍候...';
@@ -94,10 +116,10 @@ authForm.addEventListener('submit', async (e) => {
     
     try {
         if (isLoginMode) {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) throw error;
         } else {
-            const { data, error } = await supabase.auth.signUp({ email, password });
+            const { data, error } = await supabaseClient.auth.signUp({ email, password });
             if (error) throw error;
             if (data.user && data.user.identities && data.user.identities.length === 0) {
                 throw new Error("此信箱已被註冊");
@@ -117,7 +139,9 @@ authForm.addEventListener('submit', async (e) => {
 
 // Logout
 logoutBtn.addEventListener('click', async () => {
-    await supabase.auth.signOut();
+    if (supabaseClient) {
+        await supabaseClient.auth.signOut();
+    }
     checkUser();
 });
 

@@ -202,11 +202,24 @@ class CleanerService:
         # 影像前處理
         transform = T.ToTensor()
         input_tensor = transform(img).unsqueeze(0).to(self.device)
+        
+        # 動態補邊 (Padding) 讓長寬都是 32 的倍數，避免 UNet skip connection 的維度不匹配問題
+        _, _, h, w = input_tensor.size()
+        pad_h = (32 - (h % 32)) % 32
+        pad_w = (32 - (w % 32)) % 32
+        if pad_h > 0 or pad_w > 0:
+            import torch.nn.functional as F
+            # padding 順序為 (左, 右, 上, 下)
+            input_tensor = F.pad(input_tensor, (0, pad_w, 0, pad_h), mode='reflect')
 
         # 極速推論 (FP16)
         with torch.inference_mode():
             with torch.autocast(device_type="cuda", dtype=torch.float16):
                 output_tensor = self.model(input_tensor)
+                
+        # 切割回原始圖片大小
+        if pad_h > 0 or pad_w > 0:
+            output_tensor = output_tensor[:, :, :h, :w]
 
         # 後處理回傳乾淨圖片 (轉回 3 通道給前端或維持灰階)
         output_tensor = output_tensor.squeeze(0).clamp(0, 1).cpu()
