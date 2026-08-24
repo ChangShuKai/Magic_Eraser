@@ -121,7 +121,7 @@ web_app.add_middleware(
 @app.cls(
     gpu="L4",
     image=image,
-    concurrency_limit=5,
+    max_containers=5,
     timeout=30,
     min_containers=0
 )
@@ -133,7 +133,7 @@ class CleanerService:
         self.model.load_state_dict(torch.load("/root/model.pth", map_location=self.device))
         self.model.to(self.device).eval()
 
-    @modal.web_endpoint(method="POST")
+    @modal.fastapi_endpoint(method="POST")
     def clean_image(self, file: bytes):
         # 讀取前端上傳的圖片 (轉為 L 灰階，因為模型吃單通道)
         img = Image.open(io.BytesIO(file)).convert("L")
