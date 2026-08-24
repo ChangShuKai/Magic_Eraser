@@ -1,3 +1,129 @@
+// --- Supabase Setup ---
+const SUPABASE_URL = 'https://qrjkjdlwhmihxkqnrxzu.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyamtqZGx3aG1paHhrcW5yeHp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDYzMjYsImV4cCI6MjEwMzEyMjMyNn0.Z4VAfv6SIUvibLv5h02Arp9gq3jeCPWwBc_S1zuNUDA';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Auth UI Elements
+const loginBtn = document.getElementById('loginBtn');
+const registerBtn = document.getElementById('registerBtn');
+const userInfo = document.getElementById('userInfo');
+const userEmail = document.getElementById('userEmail');
+const logoutBtn = document.getElementById('logoutBtn');
+
+const authModal = document.getElementById('authModal');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const authTitle = document.getElementById('authTitle');
+const authForm = document.getElementById('authForm');
+const emailInput = document.getElementById('emailInput');
+const passwordInput = document.getElementById('passwordInput');
+const authSubmitBtn = document.getElementById('authSubmitBtn');
+const authSwitchText = document.getElementById('authSwitchText');
+const authSwitchLink = document.getElementById('authSwitchLink');
+const authError = document.getElementById('authError');
+const googleSignInBtn = document.getElementById('googleSignInBtn');
+
+let isLoginMode = true;
+
+// Initialize Auth State
+async function checkUser() {
+    const { data: { user } } = await supabase.auth.getUser();
+    updateAuthUI(user);
+}
+
+function updateAuthUI(user) {
+    if (user) {
+        loginBtn.style.display = 'none';
+        registerBtn.style.display = 'none';
+        userInfo.style.display = 'flex';
+        userEmail.innerText = user.email;
+    } else {
+        loginBtn.style.display = 'inline-block';
+        registerBtn.style.display = 'inline-block';
+        userInfo.style.display = 'none';
+        userEmail.innerText = '';
+    }
+}
+
+// Modal Toggle
+function openAuthModal(mode) {
+    isLoginMode = mode === 'login';
+    authTitle.innerText = isLoginMode ? '登入' : '註冊';
+    authSubmitBtn.innerText = isLoginMode ? '登入' : '註冊';
+    authSwitchText.innerText = isLoginMode ? '還沒有帳號？ ' : '已經有帳號？ ';
+    authSwitchLink.innerText = isLoginMode ? '註冊' : '登入';
+    authError.style.display = 'none';
+    authForm.reset();
+    authModal.style.display = 'flex';
+}
+
+function closeAuthModal() {
+    authModal.style.display = 'none';
+}
+
+googleSignInBtn.addEventListener('click', async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+    });
+    if (error) {
+        authError.innerText = error.message;
+        authError.style.display = 'block';
+    }
+});
+
+loginBtn.addEventListener('click', () => openAuthModal('login'));
+registerBtn.addEventListener('click', () => openAuthModal('register'));
+closeModalBtn.addEventListener('click', closeAuthModal);
+window.addEventListener('click', (e) => {
+    if (e.target === authModal) closeAuthModal();
+});
+
+authSwitchLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    openAuthModal(isLoginMode ? 'register' : 'login');
+});
+
+// Handle Auth Submit
+authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    authError.style.display = 'none';
+    authSubmitBtn.disabled = true;
+    authSubmitBtn.innerText = '請稍候...';
+    
+    const email = emailInput.value;
+    const password = passwordInput.value;
+    
+    try {
+        if (isLoginMode) {
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+        } else {
+            const { data, error } = await supabase.auth.signUp({ email, password });
+            if (error) throw error;
+            if (data.user && data.user.identities && data.user.identities.length === 0) {
+                throw new Error("此信箱已被註冊");
+            }
+            alert("註冊成功！如果需要驗證信，請前往信箱確認。");
+        }
+        closeAuthModal();
+        checkUser();
+    } catch (error) {
+        authError.innerText = error.message;
+        authError.style.display = 'block';
+    } finally {
+        authSubmitBtn.disabled = false;
+        authSubmitBtn.innerText = isLoginMode ? '登入' : '註冊';
+    }
+});
+
+// Logout
+logoutBtn.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    checkUser();
+});
+
+// Call on load
+checkUser();
+
 const fileInput = document.getElementById('fileInput');
 const dropZone = document.getElementById('dropZone');
 const processBtn = document.getElementById('processBtn');
@@ -162,7 +288,7 @@ processBtn.addEventListener('click', async () => {
         formData.append('enhance', enhance ? 'true' : 'false');
         
         try {
-            const response = await fetch('/api/index', {
+            const response = await fetch('https://changshukai--exam-cleaner-cleanerservice-clean-image.modal.run', {
                 method: 'POST',
                 body: formData
             });

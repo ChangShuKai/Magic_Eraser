@@ -3,7 +3,7 @@ import torch
 import torchvision.transforms as T
 from PIL import Image
 import io
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 import torch.nn as nn
@@ -101,30 +101,37 @@ class MobileNetV3UNet(nn.Module):
 import os
 import glob
 
-# 尋找最新的模型權重檔
+latest_pth = ""
+# 尋找最新的模型權重檔 (只在本地端尋找並上傳，雲端不需要)
 checkpoint_dir = os.path.join(os.path.dirname(__file__), "checkpoints")
-pth_files = glob.glob(os.path.join(checkpoint_dir, "model_epoch_*.pth"))
-if not pth_files:
-    raise FileNotFoundError("找不到任何 .pth 模型檔！請確認 checkpoints 資料夾內有模型。")
-
-def get_epoch_num(f):
-    try:
-        basename = os.path.basename(f)
-        return int(basename.replace("model_epoch_", "").replace(".pth", ""))
-    except:
-        return -1
-
-latest_pth = max(pth_files, key=get_epoch_num)
-print(f"Deploying with latest model: {latest_pth}")
+if os.path.exists(checkpoint_dir):
+    pth_files = glob.glob(os.path.join(checkpoint_dir, "model_epoch_*.pth"))
+    if pth_files:
+        def get_epoch_num(f):
+            try:
+                basename = os.path.basename(f)
+                return int(basename.replace("model_epoch_", "").replace(".pth", ""))
+            except:
+                return -1
+        latest_pth = max(pth_files, key=get_epoch_num)
+        print(f"Deploying with latest model: {latest_pth}")
 
 # 1. 定義雲端執行環境與安裝套件
 app = modal.App("exam-cleaner")
 
 image = (
     modal.Image.debian_slim()
-    .pip_install("torch", "torchvision", "pillow", "fastapi[standard]")
-    .add_local_file(latest_pth, remote_path="/root/model.pth")
+    .pip_install("torch", "torchvision", "pillow", "fastapi[standard]", "opencv-python-headless", "numpy", "python-multipart")
 )
+if latest_pth:
+    image = image.add_local_file(latest_pth, remote_path="/root/model.pth")
+
+# 把外層的 image_processor.py 也傳上 Modal 雲端，讓 Modal 也能跑純 HSV
+import sys
+parent_dir = os.path.dirname(os.path.dirname(__file__))
+image_processor_path = os.path.join(parent_dir, "image_processor.py")
+if os.path.exists(image_processor_path):
+    image = image.add_local_file(image_processor_path, remote_path="/root/image_processor.py")
 
 # 2. 建立 FastAPI 實例並開啟 CORS（讓 Vercel 前端可以正常呼叫）
 web_app = FastAPI()
@@ -154,9 +161,42 @@ class CleanerService:
         self.model.to(self.device).eval()
 
     @modal.fastapi_endpoint(method="POST")
-    async def clean_image(self, image: UploadFile = File(...)):
-        # 讀取前端上傳的圖片 (轉為 L 灰階，因為模型吃單通道)
+    async def clean_image(
+        self, 
+        image: UploadFile = File(...),
+        color_type: str = Form("both"),
+        fill_method: str = Form("white"),
+        enhance: str = Form("false")
+    ):
         img_bytes = await image.read()
+        
+        # 如果是純 HSV 去除顏色 (fill_method == 'white')
+        if fill_method == 'white':
+            import sys
+            if "/root" not in sys.path:
+                sys.path.append("/root")
+            import cv2
+            import numpy as np
+            try:
+                from image_processor import process_image, enhance_text, whiten_background
+            except ImportError:
+                return Response(content=b"image_processor not found on Modal", status_code=500)
+            
+            # 讀取圖片
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            img_cv = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            # 純 HSV 處理
+            img_cv = whiten_background(img_cv)
+            img_cv = process_image(img_cv, color_type=color_type, tolerance=50, fill_method='white')
+            if enhance.lower() == 'true':
+                img_cv = enhance_text(img_cv)
+                
+            is_success, im_buf_arr = cv2.imencode(".jpg", img_cv, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            return Response(content=im_buf_arr.tobytes(), media_type="image/jpeg")
+
+        # 否則使用 AI 智慧修補 (inpaint)
+        # 讀取前端上傳的圖片 (轉為 L 灰階，因為模型吃單通道)
         img = Image.open(io.BytesIO(img_bytes)).convert("L")
         
         # 影像前處理

@@ -48,15 +48,15 @@ def process():
         if enhance:
             img = enhance_text(img)
             
-        # 4. 編碼回 PNG 格式
-        is_success, im_buf_arr = cv2.imencode(".png", img)
+        # 4. 編碼回 JPEG 格式 (大幅減少檔案大小，加速網路傳輸與伺服器處理時間)
+        is_success, im_buf_arr = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 90])
         if not is_success:
             return jsonify({'error': 'Failed to encode processed image'}), 500
             
         # 5. 回傳圖片
         byte_io = io.BytesIO(im_buf_arr.tobytes())
         byte_io.seek(0)
-        return send_file(byte_io, mimetype='image/png')
+        return send_file(byte_io, mimetype='image/jpeg')
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
