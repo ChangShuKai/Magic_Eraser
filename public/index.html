@@ -86,6 +86,60 @@
             -webkit-text-fill-color: transparent;
         }
 
+        .dock-auth {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .auth-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .login-btn {
+            background: transparent;
+            color: #4b5563;
+        }
+        
+        .login-btn:hover {
+            color: var(--primary);
+            background: #f3f4f6;
+        }
+
+        .register-btn {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+        }
+
+        .register-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        /* Bottom Dock Styles */
+        .bottom-dock {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(229, 231, 235, 0.5);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            margin-top: auto;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
         .container {
             background: var(--card-bg);
             border-radius: 24px;
@@ -526,6 +580,10 @@
             <img src="favicon.svg" alt="SixStarCulture Logo" class="logo-svg">
             <span class="dock-title">SixStarCulture</span>
         </a>
+        <div class="dock-auth">
+            <button class="auth-btn login-btn">登入</button>
+            <button class="auth-btn register-btn">註冊</button>
+        </div>
     </nav>
 
     <div class="container">
@@ -604,6 +662,11 @@
 
         <!-- 預覽畫廊 (動態生成) -->
         <div class="gallery" id="previewGallery"></div>
+    </div>
+
+    <!-- Bottom Dock -->
+    <div class="bottom-dock">
+        &copy;SixStarCulture 2026 .All Rights Reserved
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
