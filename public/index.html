@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Magic Eraser Web - AI 考卷去手寫</title>
+    <title>SixStarCulture - Magic Eraser Web</title>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8405570774557707" crossorigin="anonymous"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,9 +41,48 @@
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 40px 20px;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Top Dock Styles */
+        .top-dock {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dock-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-main);
+        }
+
+        .logo-svg {
+            width: 32px;
+            height: 32px;
+            color: var(--primary);
+        }
+
+        .dock-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #1f2937 0%, #4b5563 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .container {
@@ -54,6 +93,7 @@
             max-width: 1100px;
             box-shadow: var(--shadow-lg);
             border: 1px solid rgba(255, 255, 255, 0.8);
+            margin: 40px 20px;
         }
 
         .header {
@@ -119,6 +159,17 @@
         .upload-area p {
             color: var(--text-muted);
             font-size: 0.95rem;
+        }
+        
+        .limit-text {
+            display: inline-block;
+            margin-top: 10px;
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
         }
 
         .settings-card {
@@ -272,6 +323,7 @@
             display: flex;
             justify-content: center;
             gap: 16px;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -340,10 +392,15 @@
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, var(--primary), #ec4899);
-            width: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 5px;
+        }
+        
+        .progress-indeterminate {
+            width: 100% !important;
             animation: indeterminate 2s infinite ease-in-out;
             transform-origin: 0% 50%;
-            border-radius: 5px;
         }
 
         @keyframes indeterminate {
@@ -351,58 +408,74 @@
             100% { transform: translateX(100%); }
         }
 
-        .preview-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
+        /* Multiple Images Gallery */
+        .gallery {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            margin-top: 20px;
         }
 
-        @media (max-width: 800px) {
-            .preview-container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .preview-box {
+        .image-card {
             background: #f8fafc;
             border: 1px solid var(--border-color);
             border-radius: 20px;
             padding: 24px;
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
             box-shadow: var(--shadow-sm);
         }
 
-        .preview-header {
+        @media (max-width: 800px) {
+            .image-card {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card-header {
+            grid-column: 1 / -1;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
             border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 12px;
+            margin-bottom: 5px;
         }
 
-        .preview-box h3 {
-            font-size: 1.1rem;
+        .file-name {
+            font-weight: 600;
             color: #334155;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .badge {
-            background: #e0e7ff;
-            color: #4338ca;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            font-size: 1.05rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 80%;
         }
         
-        .badge-output {
-            background: #dcfce7;
-            color: #15803d;
+        .file-status {
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        
+        .status-pending { background: #e2e8f0; color: #475569; }
+        .status-processing { background: #fef08a; color: #854d0e; }
+        .status-done { background: #dcfce7; color: #15803d; }
+        .status-error { background: #fee2e2; color: #b91c1c; }
+
+        .preview-box {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .preview-box h4 {
+            font-size: 0.95rem;
+            color: #64748b;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
         }
 
         .canvas-wrapper {
@@ -414,31 +487,55 @@
             border-radius: 12px;
             overflow: hidden;
             border: 1px dashed #cbd5e1;
-            min-height: 350px;
+            min-height: 250px;
             position: relative;
-        }
-        
-        .canvas-wrapper::before {
-            content: '尚未載入圖片';
-            position: absolute;
-            color: #cbd5e1;
-            font-weight: 500;
-            font-size: 1rem;
-            z-index: 0;
         }
 
         canvas {
             max-width: 100%;
             height: auto;
+            max-height: 400px;
             object-fit: contain;
             display: block;
-            position: relative;
-            z-index: 1;
-            background: white; /* to cover the placeholder text once image is drawn */
+        }
+        
+        .download-btn-small {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: none;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .download-btn-small:hover {
+            background: #e2e8f0;
         }
     </style>
 </head>
 <body>
+    <!-- Top Dock -->
+    <nav class="top-dock">
+        <a href="#" class="dock-brand">
+            <!-- 預留 SVG Logo 位置 -->
+            <svg class="logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#4f46e5" />
+                        <stop offset="100%" stop-color="#ec4899" />
+                    </linearGradient>
+                </defs>
+                <path d="M50 10 L61 39 L91 39 L66 57 L75 86 L50 68 L25 86 L34 57 L9 39 L40 39 Z" fill="url(#logoGrad)" />
+            </svg>
+            <span class="dock-title">SixStarCulture</span>
+        </a>
+    </nav>
+
     <div class="container">
         <div class="header">
             <h1>✨ Magic Eraser</h1>
@@ -451,7 +548,8 @@
             </svg>
             <h3>點擊或拖曳考卷圖片至此</h3>
             <p>支援 JPG, PNG 高畫質處理</p>
-            <input type="file" id="fileInput" accept="image/png, image/jpeg, image/jpg" style="display: none;">
+            <span class="limit-text">一次最多支援上傳 10 張圖片</span>
+            <input type="file" id="fileInput" accept="image/png, image/jpeg, image/jpg" multiple style="display: none;">
         </div>
 
         <div class="settings-card">
@@ -498,11 +596,11 @@
         <div class="action-area">
             <button id="processBtn" class="btn" disabled>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
-                開始智能去除
+                開始智能去除 (<span id="fileCount">0</span>)
             </button>
-            <button id="downloadBtn" class="btn btn-success" style="display: none;">
+            <button id="downloadAllBtn" class="btn btn-success" style="display: none;">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                下載高畫質結果
+                下載全部結果
             </button>
         </div>
 
@@ -512,28 +610,11 @@
             <div class="progress-fill" id="progressBar"></div>
         </div>
 
-        <div class="preview-container">
-            <div class="preview-box">
-                <div class="preview-header">
-                    <h3>原始圖片</h3>
-                    <span class="badge">Input</span>
-                </div>
-                <div class="canvas-wrapper">
-                    <canvas id="inputCanvas"></canvas>
-                </div>
-            </div>
-            <div class="preview-box">
-                <div class="preview-header">
-                    <h3>處理結果</h3>
-                    <span class="badge badge-output">Output</span>
-                </div>
-                <div class="canvas-wrapper">
-                    <canvas id="outputCanvas"></canvas>
-                </div>
-            </div>
-        </div>
+        <!-- 預覽畫廊 (動態生成) -->
+        <div class="gallery" id="previewGallery"></div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
