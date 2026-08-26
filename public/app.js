@@ -50,17 +50,18 @@ const switchToEmailLoginBtn = document.getElementById('switchToEmailLoginBtn');
 let isLoginMode = true;
 let isSmsMode = false;
 let isGoogleCompleteReg = false;
+let isUserVIP = false;
 
 // Populate Birthday
 function populateBirthday() {
     const yearSelect = document.getElementById('regYear');
     const monthSelect = document.getElementById('regMonth');
     const daySelect = document.getElementById('regDay');
-    
+
     const currentYear = new Date().getFullYear();
-    for(let i = currentYear; i >= 1930; i--) yearSelect.add(new Option(i, i));
-    for(let i = 1; i <= 12; i++) monthSelect.add(new Option(i, i));
-    for(let i = 1; i <= 31; i++) daySelect.add(new Option(i, i));
+    for (let i = currentYear; i >= 1930; i--) yearSelect.add(new Option(i, i));
+    for (let i = 1; i <= 12; i++) monthSelect.add(new Option(i, i));
+    for (let i = 1; i <= 31; i++) daySelect.add(new Option(i, i));
 }
 populateBirthday();
 
@@ -69,7 +70,7 @@ const regPhone = document.getElementById('regPhone');
 const phoneError = document.getElementById('phoneError');
 function validatePhone() {
     const val = regPhone.value.trim();
-    const regex = /^(0\d{10}|\d{10})$/;
+    const regex = /^(09\d{8}|9\d{8})$/;;
     if (!regex.test(val)) {
         phoneError.style.display = 'block';
         return false;
@@ -138,11 +139,18 @@ function updateAuthUI(user) {
         userInfo.style.display = 'flex';
         // prefer phone if no email
         userEmail.innerText = user.email || user.phone || '使用者';
+
+        // Check VIP status
+        isUserVIP = user.user_metadata && user.user_metadata.is_vip === true;
+        document.getElementById('vipPill').style.display = isUserVIP ? 'inline-block' : 'none';
+
     } else {
         loginBtn.style.display = 'inline-block';
         registerBtn.style.display = 'inline-block';
         userInfo.style.display = 'none';
         userEmail.innerText = '';
+        isUserVIP = false;
+        document.getElementById('vipPill').style.display = 'none';
     }
 }
 
@@ -151,26 +159,26 @@ function openAuthModal(mode) {
     isLoginMode = mode === 'login';
     isSmsMode = false;
     authTitle.innerText = isLoginMode ? '登入' : (isGoogleCompleteReg ? '完成註冊' : '註冊');
-    
+
     loginForm.style.display = isLoginMode ? 'flex' : 'none';
     smsLoginForm.style.display = 'none';
     registerForm.style.display = isLoginMode ? 'none' : 'flex';
     verifyEmailScreen.style.display = 'none';
-    
+
     authDivider.style.display = isGoogleCompleteReg ? 'none' : 'flex';
     googleSignInBtn.style.display = isGoogleCompleteReg ? 'none' : 'flex';
     document.querySelector('.auth-switch').style.display = isGoogleCompleteReg ? 'none' : 'block';
-    
+
     authSwitchText.innerText = isLoginMode ? '還沒有帳號？ ' : '已經有帳號？ ';
     authSwitchLink.innerText = isLoginMode ? '註冊' : '登入';
     authError.style.display = 'none';
-    
+
     // Reset SMS forms
     otpGroup.style.display = 'none';
     sendOtpBtn.style.display = 'block';
     smsLoginSubmitBtn.style.display = 'none';
     loginOtp.value = '';
-    
+
     if (!isGoogleCompleteReg) {
         loginForm.reset();
         registerForm.reset();
@@ -240,11 +248,11 @@ loginForm.addEventListener('submit', async (e) => {
     const btn = loginForm.querySelector('button[type="submit"]');
     btn.disabled = true;
     btn.innerText = '請稍候...';
-    
+
     try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ 
-            email: loginEmail.value, 
-            password: loginPassword.value 
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: loginEmail.value,
+            password: loginPassword.value
         });
         if (error) {
             if (error.message.includes('Email not confirmed')) {
@@ -252,16 +260,16 @@ loginForm.addEventListener('submit', async (e) => {
             }
             throw error;
         }
-        
+
         // If user is not fully registered yet
         if (data.user && data.user.user_metadata && !data.user.user_metadata.is_registered) {
-             isGoogleCompleteReg = true;
-             openAuthModal('register');
-             registerEmail.value = data.user.email;
-             registerEmail.disabled = true;
+            isGoogleCompleteReg = true;
+            openAuthModal('register');
+            registerEmail.value = data.user.email;
+            registerEmail.disabled = true;
         } else {
-             closeAuthModal();
-             checkUser();
+            closeAuthModal();
+            checkUser();
         }
     } catch (error) {
         authError.innerText = error.message;
@@ -277,16 +285,16 @@ sendOtpBtn.addEventListener('click', async () => {
     if (!loginPhone.value) return alert('請輸入手機號碼');
     if (!supabaseClient) return alert("Supabase 無法載入！");
     authError.style.display = 'none';
-    
+
     sendOtpBtn.disabled = true;
     sendOtpBtn.innerText = '發送中...';
-    
+
     const phone = `${loginPhoneCode.value}${loginPhone.value.replace(/^0/, '')}`; // format TW properly
-    
+
     try {
         const { data, error } = await supabaseClient.auth.signInWithOtp({ phone });
         if (error) throw error;
-        
+
         otpGroup.style.display = 'flex';
         sendOtpBtn.style.display = 'none';
         smsLoginSubmitBtn.style.display = 'block';
@@ -304,23 +312,23 @@ smsLoginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!supabaseClient) return;
     authError.style.display = 'none';
-    
+
     smsLoginSubmitBtn.disabled = true;
     smsLoginSubmitBtn.innerText = '驗證中...';
-    
+
     const phone = `${loginPhoneCode.value}${loginPhone.value.replace(/^0/, '')}`;
     const token = loginOtp.value;
-    
+
     try {
         const { data, error } = await supabaseClient.auth.verifyOtp({ phone, token, type: 'sms' });
         if (error) throw error;
-        
+
         if (data.user && data.user.user_metadata && !data.user.user_metadata.is_registered) {
-             isGoogleCompleteReg = true;
-             openAuthModal('register');
+            isGoogleCompleteReg = true;
+            openAuthModal('register');
         } else {
-             closeAuthModal();
-             checkUser();
+            closeAuthModal();
+            checkUser();
         }
     } catch (error) {
         authError.innerText = error.message;
@@ -335,11 +343,11 @@ registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!validatePhone()) return;
     if (!supabaseClient) return alert("Supabase 無法載入！");
-    
+
     authError.style.display = 'none';
     registerSubmitBtn.disabled = true;
     registerSubmitBtn.innerText = '請稍候...';
-    
+
     const email = registerEmail.value;
     const password = registerPassword.value;
     const metadata = {
@@ -349,13 +357,13 @@ registerForm.addEventListener('submit', async (e) => {
         phone: `${document.getElementById('regPhoneCode').value} ${document.getElementById('regPhone').value}`,
         source: document.getElementById('regSource').value
     };
-    
+
     try {
         if (isGoogleCompleteReg) {
             // Update existing Google user with password and metadata
-            const { data, error } = await supabaseClient.auth.updateUser({ 
+            const { data, error } = await supabaseClient.auth.updateUser({
                 password: password,
-                data: metadata 
+                data: metadata
             });
             if (error) throw error;
             alert("註冊完成！");
@@ -364,8 +372,8 @@ registerForm.addEventListener('submit', async (e) => {
             checkUser();
         } else {
             // Normal signup - Send verification email
-            const { data, error } = await supabaseClient.auth.signUp({ 
-                email, 
+            const { data, error } = await supabaseClient.auth.signUp({
+                email,
                 password,
                 options: { data: metadata }
             });
@@ -373,7 +381,7 @@ registerForm.addEventListener('submit', async (e) => {
             if (data.user && data.user.identities && data.user.identities.length === 0) {
                 throw new Error("此信箱已被註冊");
             }
-            
+
             // Show verification screen
             registerForm.style.display = 'none';
             authTitle.innerText = '驗證信箱';
@@ -454,17 +462,18 @@ dropZone.addEventListener('drop', (e) => {
 
 function handleFiles(files) {
     const validFiles = Array.from(files).filter(f => f.type.match('image.*'));
-    
+
     if (validFiles.length === 0) {
         alert("請上傳圖片檔案 (JPG, PNG)");
         return;
     }
 
-    if (validFiles.length > MAX_FILES) {
-        alert(`最多只能上傳 ${MAX_FILES} 張圖片，將只取前 ${MAX_FILES} 張。`);
-        validFiles.splice(MAX_FILES);
+    const limit = isUserVIP ? Infinity : MAX_FILES;
+    if (validFiles.length > limit) {
+        alert(`一般會員最多只能上傳 ${MAX_FILES} 張圖片，將只取前 ${MAX_FILES} 張。\n升級 SVIP 即可無限制上傳！`);
+        validFiles.splice(limit);
     }
-    
+
     // 清空舊的
     selectedFiles = [];
     previewGallery.innerHTML = '';
@@ -485,7 +494,7 @@ function handleFiles(files) {
     processBtn.disabled = false;
     statusText.innerText = `已載入 ${selectedFiles.length} 張圖片，點擊按鈕開始處理`;
     statusText.style.color = "var(--primary)";
-    
+
     // reset input value so you can select the same files again
     fileInput.value = '';
 }
@@ -522,10 +531,10 @@ function createPreviewCard(fileObj) {
                 </div>
             </div>
         `;
-        
+
         // Append to gallery
         previewGallery.insertAdjacentHTML('beforeend', cardHTML);
-        
+
         // Draw input image
         const img = new Image();
         img.onload = () => {
@@ -543,57 +552,57 @@ function createPreviewCard(fileObj) {
 // 2. 送出至後端處理
 processBtn.addEventListener('click', async () => {
     if (selectedFiles.length === 0) return;
-    
+
     processBtn.disabled = true;
     fileInput.disabled = true;
     downloadAllBtn.style.display = 'none';
     progressBarContainer.style.display = 'block';
-    
+
     statusText.innerText = "正在傳送至後端進行處理...";
     statusText.style.color = "#e67e22";
-    
+
     // 取得設定
     const colorType = document.querySelector('input[name="color_type"]:checked').value;
     const useInpaint = document.getElementById('cb_inpaint').checked;
     const enhance = document.getElementById('cb_enhance').checked;
-    
+
     let completedCount = 0;
-    
+
     for (let i = 0; i < selectedFiles.length; i++) {
         const fileObj = selectedFiles[i];
-        
+
         // Update UI for processing
         const statusEl = document.getElementById(`status_${fileObj.id}`);
         statusEl.className = 'file-status status-processing';
         statusEl.innerText = '處理中...';
-        
+
         // Update global progress
         const percent = (i / selectedFiles.length) * 100;
         progressBar.style.width = `${percent}%`;
         progressBar.classList.remove('progress-indeterminate');
-        
+
         const formData = new FormData();
         formData.append('image', fileObj.file);
         formData.append('color_type', colorType);
         formData.append('fill_method', useInpaint ? 'inpaint' : 'white');
         formData.append('enhance', enhance ? 'true' : 'false');
-        
+
         try {
             const response = await fetch('https://changshukai--exam-cleaner-cleanerservice-clean-image.modal.run', {
                 method: 'POST',
                 body: formData
             });
-            
+
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(errData.error || `HTTP 錯誤 ${response.status}`);
             }
-            
+
             // 取得回傳的圖片 blob
             const blob = await response.blob();
             const imgUrl = URL.createObjectURL(blob);
             fileObj.resultUrl = imgUrl;
-            
+
             // Draw output image
             await new Promise((resolve) => {
                 const resultImg = new Image();
@@ -603,7 +612,7 @@ processBtn.addEventListener('click', async () => {
                     canvas.width = resultImg.width;
                     canvas.height = resultImg.height;
                     ctx.drawImage(resultImg, 0, 0);
-                    
+
                     // Setup single download button
                     const dlBtn = document.getElementById(`dl_${fileObj.id}`);
                     dlBtn.style.display = 'inline-flex';
@@ -613,16 +622,16 @@ processBtn.addEventListener('click', async () => {
                         link.href = imgUrl;
                         link.click();
                     };
-                    
+
                     resolve();
                 };
                 resultImg.src = imgUrl;
             });
-            
+
             statusEl.className = 'file-status status-done';
             statusEl.innerText = '處理完成';
             completedCount++;
-            
+
         } catch (error) {
             console.error(error);
             statusEl.className = 'file-status status-error';
@@ -630,12 +639,12 @@ processBtn.addEventListener('click', async () => {
             fileObj.status = 'error';
         }
     }
-    
+
     // Done
     progressBar.style.width = `100%`;
     processBtn.disabled = false;
     fileInput.disabled = false;
-    
+
     if (completedCount > 0) {
         statusText.innerText = `處理完畢！成功: ${completedCount}/${selectedFiles.length}`;
         statusText.style.color = "#2ecc71";
@@ -646,7 +655,7 @@ processBtn.addEventListener('click', async () => {
         statusText.innerText = `所有圖片處理失敗`;
         statusText.style.color = "#e74c3c";
     }
-    
+
     // Hide progress bar after 2 seconds
     setTimeout(() => {
         progressBarContainer.style.display = 'none';
@@ -660,16 +669,16 @@ downloadAllBtn.addEventListener('click', async () => {
         alert("無法載入 JSZip，請使用單張下載。");
         return;
     }
-    
+
     const zip = new JSZip();
     let hasFiles = false;
-    
+
     downloadAllBtn.disabled = true;
     const oldText = downloadAllBtn.innerHTML;
     downloadAllBtn.innerHTML = "正在打包...";
-    
+
     const successfulFiles = selectedFiles.filter(f => f.resultUrl);
-    
+
     for (let i = 0; i < successfulFiles.length; i++) {
         const fileObj = successfulFiles[i];
         try {
@@ -681,7 +690,7 @@ downloadAllBtn.addEventListener('click', async () => {
             console.error("Error zipping file:", e);
         }
     }
-    
+
     if (hasFiles) {
         const content = await zip.generateAsync({ type: "blob" });
         const link = document.createElement('a');
@@ -689,7 +698,22 @@ downloadAllBtn.addEventListener('click', async () => {
         link.href = URL.createObjectURL(content);
         link.click();
     }
-    
+
     downloadAllBtn.innerHTML = oldText;
     downloadAllBtn.disabled = false;
+});
+
+// 4. VIP Feature Enforcement
+document.getElementById('cb_inpaint').addEventListener('click', (e) => {
+    if (!isUserVIP) {
+        e.preventDefault();
+        alert("✨ 使用 AI 智慧修補 (Inpaint) 是 SVIP 專屬功能！請升級 SVIP 後使用。");
+    }
+});
+
+document.getElementById('cb_enhance').addEventListener('click', (e) => {
+    if (!isUserVIP) {
+        e.preventDefault();
+        alert("🌓 增強黑白對比度 是 SVIP 專屬功能！請升級 SVIP 後使用。");
+    }
 });

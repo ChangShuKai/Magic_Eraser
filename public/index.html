@@ -768,6 +768,7 @@
             <button class="auth-btn register-btn" id="registerBtn">註冊</button>
             <div id="userInfo" style="display: none; align-items: center; gap: 10px;">
                 <span id="userEmail" style="font-size: 0.9rem; font-weight: 500;"></span>
+                <span id="vipPill" style="display: none; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.05em; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);">SVIP</span>
                 <button class="auth-btn login-btn" id="logoutBtn">登出</button>
             </div>
         </div>
@@ -982,13 +983,19 @@
                 <div class="setting-section">
                     <span class="setting-label">進階畫質增強</span>
                     <div class="toggle-group">
-                        <label class="toggle-label">
-                            <span class="toggle-text">✨ 使用 AI 智慧修補 (Inpaint)</span>
+                        <label class="toggle-label" id="label_inpaint">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="toggle-text">✨ 使用 AI 智慧修補 (Inpaint)</span>
+                                <span class="vip-badge" style="font-size:0.7rem; background:linear-gradient(135deg, #f59e0b, #d97706); color:white; padding:2px 6px; border-radius:8px; font-weight:bold;">SVIP專屬</span>
+                            </div>
                             <input type="checkbox" id="cb_inpaint">
                             <div class="toggle-switch"></div>
                         </label>
-                        <label class="toggle-label">
-                            <span class="toggle-text">🌓 增強黑白對比度</span>
+                        <label class="toggle-label" id="label_enhance">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="toggle-text">🌓 增強黑白對比度</span>
+                                <span class="vip-badge" style="font-size:0.7rem; background:linear-gradient(135deg, #f59e0b, #d97706); color:white; padding:2px 6px; border-radius:8px; font-weight:bold;">SVIP專屬</span>
+                            </div>
                             <input type="checkbox" id="cb_enhance">
                             <div class="toggle-switch"></div>
                         </label>
