@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SixStarCulture - Magic Eraser Web</title>
+    <title>Magic Eraser 考卷手寫去除</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8405570774557707" crossorigin="anonymous"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8405570774557707"
+        crossorigin="anonymous"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             --primary: #4f46e5;
@@ -35,10 +38,10 @@
         body {
             font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
-            background-image: 
-                radial-gradient(at 0% 0%, hsla(253,16%,7%,0) 0, transparent 50%), 
-                radial-gradient(at 50% 0%, hsla(225,39%,30%,0.05) 0, transparent 50%), 
-                radial-gradient(at 100% 0%, hsla(339,49%,30%,0.05) 0, transparent 50%);
+            background-image:
+                radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 0) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 0.05) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 0.05) 0, transparent 50%);
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
@@ -106,7 +109,7 @@
             background: transparent;
             color: #4b5563;
         }
-        
+
         .login-btn:hover {
             color: var(--primary);
             background: #f3f4f6;
@@ -125,14 +128,14 @@
 
         /* Modal Styles */
         .modal {
-            display: none; 
-            position: fixed; 
-            z-index: 100; 
+            display: none;
+            position: fixed;
+            z-index: 100;
             left: 0;
             top: 0;
-            width: 100%; 
-            height: 100%; 
-            background-color: rgba(0,0,0,0.5); 
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(4px);
             align-items: center;
             justify-content: center;
@@ -171,7 +174,8 @@
             margin-top: 20px;
         }
 
-        .auth-input, .auth-select {
+        .auth-input,
+        .auth-select {
             padding: 12px 15px;
             border: 1px solid var(--border-color);
             border-radius: 10px;
@@ -183,7 +187,8 @@
             color: var(--text-main);
         }
 
-        .auth-input:focus, .auth-select:focus {
+        .auth-input:focus,
+        .auth-select:focus {
             border-color: var(--primary);
         }
 
@@ -216,7 +221,7 @@
         .phone-group input {
             width: 65%;
         }
-        
+
         .error-text {
             color: var(--danger);
             font-size: 0.8rem;
@@ -244,12 +249,14 @@
             margin: 20px 0;
             color: var(--text-muted);
         }
+
         .auth-divider::before,
         .auth-divider::after {
             content: '';
             flex: 1;
             border-bottom: 1px solid var(--border-color);
         }
+
         .auth-divider span {
             padding: 0 10px;
             font-size: 0.85rem;
@@ -353,7 +360,7 @@
             fill: #94a3b8;
             transition: fill 0.3s ease, transform 0.3s ease;
         }
-        
+
         .upload-area:hover .upload-icon {
             fill: var(--primary);
             transform: translateY(-5px);
@@ -370,7 +377,7 @@
             color: var(--text-muted);
             font-size: 0.95rem;
         }
-        
+
         .limit-text {
             display: inline-block;
             margin-top: 10px;
@@ -390,7 +397,7 @@
             margin-bottom: 35px;
             box-shadow: var(--shadow-sm);
         }
-        
+
         .settings-title {
             font-size: 1.1rem;
             font-weight: 600;
@@ -454,7 +461,7 @@
             background: #eef2ff;
         }
 
-        .radio-label input[type="radio"]:checked + span {
+        .radio-label input[type="radio"]:checked+span {
             color: var(--primary);
             font-weight: 600;
         }
@@ -471,7 +478,7 @@
             flex-direction: column;
             gap: 12px;
         }
-        
+
         .toggle-label {
             display: flex;
             align-items: center;
@@ -503,7 +510,7 @@
             background-color: #e5e7eb;
             border-radius: 24px;
             transition: background-color 0.3s ease;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         .toggle-switch::after {
@@ -516,14 +523,14 @@
             background-color: white;
             border-radius: 50%;
             transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        .toggle-label input[type="checkbox"]:checked ~ .toggle-switch {
+        .toggle-label input[type="checkbox"]:checked~.toggle-switch {
             background-color: var(--primary);
         }
 
-        .toggle-label input[type="checkbox"]:checked ~ .toggle-switch::after {
+        .toggle-label input[type="checkbox"]:checked~.toggle-switch::after {
             transform: translateX(20px);
         }
 
@@ -557,7 +564,7 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
         }
-        
+
         .btn:active:not(:disabled) {
             transform: translateY(1px);
         }
@@ -596,7 +603,7 @@
             margin-bottom: 35px;
             display: none;
             position: relative;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
         .progress-fill {
@@ -606,7 +613,7 @@
             transition: width 0.3s ease;
             border-radius: 5px;
         }
-        
+
         .progress-indeterminate {
             width: 100% !important;
             animation: indeterminate 2s infinite ease-in-out;
@@ -614,8 +621,13 @@
         }
 
         @keyframes indeterminate {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
         }
 
         /* Multiple Images Gallery */
@@ -662,24 +674,39 @@
             text-overflow: ellipsis;
             max-width: 80%;
         }
-        
+
         .file-status {
             font-size: 0.85rem;
             font-weight: 600;
             padding: 4px 10px;
             border-radius: 20px;
         }
-        
-        .status-pending { background: #e2e8f0; color: #475569; }
-        .status-processing { background: #fef08a; color: #854d0e; }
-        .status-done { background: #dcfce7; color: #15803d; }
-        .status-error { background: #fee2e2; color: #b91c1c; }
+
+        .status-pending {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .status-processing {
+            background: #fef08a;
+            color: #854d0e;
+        }
+
+        .status-done {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
 
         .preview-box {
             display: flex;
             flex-direction: column;
         }
-        
+
         .preview-box h4 {
             font-size: 0.95rem;
             color: #64748b;
@@ -708,7 +735,7 @@
             object-fit: contain;
             display: block;
         }
-        
+
         .download-btn-small {
             background: #f1f5f9;
             color: #334155;
@@ -722,12 +749,13 @@
             align-items: center;
             gap: 4px;
         }
-        
+
         .download-btn-small:hover {
             background: #e2e8f0;
         }
     </style>
 </head>
+
 <body>
     <!-- Top Dock -->
     <nav class="top-dock">
@@ -750,8 +778,9 @@
         <div class="modal-content">
             <span class="close-btn" id="closeModalBtn">&times;</span>
             <h2 id="authTitle" style="text-align: center; margin-bottom: 10px;">登入</h2>
-            <div id="authError" style="color: var(--danger); font-size: 0.9rem; text-align: center; display: none;"></div>
-            
+            <div id="authError" style="color: var(--danger); font-size: 0.9rem; text-align: center; display: none;">
+            </div>
+
             <!-- Login Form -->
             <form id="loginForm" class="auth-form">
                 <input type="email" id="loginEmail" class="auth-input" placeholder="電子郵件" required>
@@ -777,14 +806,15 @@
                         <input type="tel" id="loginPhone" class="auth-input" placeholder="手機號碼" required>
                     </div>
                 </div>
-                
+
                 <div class="form-group" id="otpGroup" style="display: none;">
                     <label class="form-label">簡訊驗證碼</label>
                     <input type="text" id="loginOtp" class="auth-input" placeholder="6位數驗證碼" maxlength="6">
                 </div>
 
                 <button type="button" id="sendOtpBtn" class="btn" style="padding: 12px; width: 100%;">發送驗證碼</button>
-                <button type="submit" id="smsLoginSubmitBtn" class="btn btn-success" style="padding: 12px; width: 100%; display: none;">驗證並登入</button>
+                <button type="submit" id="smsLoginSubmitBtn" class="btn btn-success"
+                    style="padding: 12px; width: 100%; display: none;">驗證並登入</button>
                 <div class="auth-switch" style="margin-top: 10px;">
                     <a href="#" id="switchToEmailLoginBtn" style="font-weight: 500;">改用信箱密碼登入</a>
                 </div>
@@ -796,18 +826,25 @@
                     <label class="form-label">電子郵件</label>
                     <input type="email" id="registerEmail" class="auth-input" placeholder="電子郵件" required>
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label">密碼</label>
-                    <input type="password" id="registerPassword" class="auth-input" placeholder="密碼 (至少6位)" minlength="6" required>
+                    <input type="password" id="registerPassword" class="auth-input" placeholder="密碼 (至少6位)"
+                        minlength="6" required>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">生日</label>
                     <div class="form-row">
-                        <select id="regYear" class="auth-select" required><option value="">年</option></select>
-                        <select id="regMonth" class="auth-select" required><option value="">月</option></select>
-                        <select id="regDay" class="auth-select" required><option value="">日</option></select>
+                        <select id="regYear" class="auth-select" required>
+                            <option value="">年</option>
+                        </select>
+                        <select id="regMonth" class="auth-select" required>
+                            <option value="">月</option>
+                        </select>
+                        <select id="regDay" class="auth-select" required>
+                            <option value="">日</option>
+                        </select>
                     </div>
                 </div>
 
@@ -853,22 +890,40 @@
 
             <!-- Verification Sent Screen -->
             <div id="verifyEmailScreen" class="auth-form" style="display: none; text-align: center;">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto;">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
                 <h3 style="margin-top: 15px; margin-bottom: 10px;">驗證信已發送</h3>
                 <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px; line-height: 1.5;">
                     我們已將驗證信發送至 <br><strong id="verifyEmailTarget" style="color: var(--text-main);"></strong><br>
                     請點擊信中的連結以完成註冊。
                 </p>
-                <button id="resendEmailBtn" class="btn" style="width: 100%; padding: 12px; margin-bottom: 10px; background: #f3f4f6; color: var(--text-main); box-shadow: none;">重新發送驗證信</button>
+                <button id="resendEmailBtn" class="btn"
+                    style="width: 100%; padding: 12px; margin-bottom: 10px; background: #f3f4f6; color: var(--text-main); box-shadow: none;">重新發送驗證信</button>
                 <button type="button" class="oauth-btn" onclick="closeAuthModal()">完成</button>
             </div>
-            
+
             <div class="auth-divider" id="authDivider">
                 <span>或</span>
             </div>
 
             <button id="googleSignInBtn" class="oauth-btn" type="button">
-                <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true" class="google-icon"><path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"></path><path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"></path><path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24c0 3.55.85 6.91 2.34 9.88l7.35-5.7z"></path><path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"></path></svg>
+                <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true" class="google-icon">
+                    <path fill="#4285F4"
+                        d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z">
+                    </path>
+                    <path fill="#34A853"
+                        d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z">
+                    </path>
+                    <path fill="#FBBC05"
+                        d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24c0 3.55.85 6.91 2.34 9.88l7.35-5.7z">
+                    </path>
+                    <path fill="#EA4335"
+                        d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z">
+                    </path>
+                </svg>
                 <span>使用 Google 登入</span>
             </button>
 
@@ -883,10 +938,11 @@
             <h1>✨ Magic Eraser</h1>
             <p class="subtitle">AI 驅動的高級考卷手寫筆跡去除工具</p>
         </div>
-        
+
         <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
             <svg class="upload-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                <path
+                    d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
             </svg>
             <h3>點擊或拖曳考卷圖片至此</h3>
             <p>支援 JPG, PNG 高畫質處理</p>
@@ -896,7 +952,13 @@
 
         <div class="settings-card">
             <div class="settings-title">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary);"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary);">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                    </path>
+                </svg>
                 處理參數設定
             </div>
             <div class="settings-group">
@@ -937,17 +999,27 @@
 
         <div class="action-area">
             <button id="processBtn" class="btn" disabled>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83">
+                    </path>
+                </svg>
                 開始智能去除 (<span id="fileCount">0</span>)
             </button>
             <button id="downloadAllBtn" class="btn btn-success" style="display: none;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
                 下載全部結果
             </button>
         </div>
 
         <div id="status">等待上傳圖片...</div>
-        
+
         <div class="progress-bar" id="progressBarContainer">
             <div class="progress-fill" id="progressBar"></div>
         </div>
@@ -965,4 +1037,5 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js"></script>
 </body>
+
 </html>
