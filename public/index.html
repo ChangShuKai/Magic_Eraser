@@ -757,6 +757,37 @@
                 <input type="email" id="loginEmail" class="auth-input" placeholder="電子郵件" required>
                 <input type="password" id="loginPassword" class="auth-input" placeholder="密碼" required>
                 <button type="submit" class="btn" style="padding: 12px; width: 100%;">登入</button>
+                <div class="auth-switch" style="margin-top: 10px;">
+                    <a href="#" id="switchToSmsBtn" style="font-weight: 500;">改用手機簡訊登入</a>
+                </div>
+            </form>
+
+            <!-- SMS Login Form -->
+            <form id="smsLoginForm" class="auth-form" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">手機號碼</label>
+                    <div class="phone-group">
+                        <select id="loginPhoneCode" class="auth-select" required>
+                            <option value="+886">台灣 (+886)</option>
+                            <option value="+86">中國 (+86)</option>
+                            <option value="+852">香港 (+852)</option>
+                            <option value="+81">日本 (+81)</option>
+                            <option value="+1">美國 (+1)</option>
+                        </select>
+                        <input type="tel" id="loginPhone" class="auth-input" placeholder="手機號碼" required>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="otpGroup" style="display: none;">
+                    <label class="form-label">簡訊驗證碼</label>
+                    <input type="text" id="loginOtp" class="auth-input" placeholder="6位數驗證碼" maxlength="6">
+                </div>
+
+                <button type="button" id="sendOtpBtn" class="btn" style="padding: 12px; width: 100%;">發送驗證碼</button>
+                <button type="submit" id="smsLoginSubmitBtn" class="btn btn-success" style="padding: 12px; width: 100%; display: none;">驗證並登入</button>
+                <div class="auth-switch" style="margin-top: 10px;">
+                    <a href="#" id="switchToEmailLoginBtn" style="font-weight: 500;">改用信箱密碼登入</a>
+                </div>
             </form>
 
             <!-- Register Form -->
@@ -819,8 +850,20 @@
 
                 <button type="submit" id="registerSubmitBtn" class="btn" style="padding: 12px; width: 100%;">註冊</button>
             </form>
+
+            <!-- Verification Sent Screen -->
+            <div id="verifyEmailScreen" class="auth-form" style="display: none; text-align: center;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                <h3 style="margin-top: 15px; margin-bottom: 10px;">驗證信已發送</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px; line-height: 1.5;">
+                    我們已將驗證信發送至 <br><strong id="verifyEmailTarget" style="color: var(--text-main);"></strong><br>
+                    請點擊信中的連結以完成註冊。
+                </p>
+                <button id="resendEmailBtn" class="btn" style="width: 100%; padding: 12px; margin-bottom: 10px; background: #f3f4f6; color: var(--text-main); box-shadow: none;">重新發送驗證信</button>
+                <button type="button" class="oauth-btn" onclick="closeAuthModal()">完成</button>
+            </div>
             
-            <div class="auth-divider">
+            <div class="auth-divider" id="authDivider">
                 <span>或</span>
             </div>
 

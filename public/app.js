@@ -23,7 +23,9 @@ const authModal = document.getElementById('authModal');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const authTitle = document.getElementById('authTitle');
 const loginForm = document.getElementById('loginForm');
+const smsLoginForm = document.getElementById('smsLoginForm');
 const registerForm = document.getElementById('registerForm');
+const verifyEmailScreen = document.getElementById('verifyEmailScreen');
 const loginEmail = document.getElementById('loginEmail');
 const loginPassword = document.getElementById('loginPassword');
 const registerEmail = document.getElementById('registerEmail');
@@ -33,8 +35,20 @@ const authSwitchText = document.getElementById('authSwitchText');
 const authSwitchLink = document.getElementById('authSwitchLink');
 const authError = document.getElementById('authError');
 const googleSignInBtn = document.getElementById('googleSignInBtn');
+const authDivider = document.getElementById('authDivider');
+
+// SMS Login elements
+const loginPhoneCode = document.getElementById('loginPhoneCode');
+const loginPhone = document.getElementById('loginPhone');
+const loginOtp = document.getElementById('loginOtp');
+const otpGroup = document.getElementById('otpGroup');
+const sendOtpBtn = document.getElementById('sendOtpBtn');
+const smsLoginSubmitBtn = document.getElementById('smsLoginSubmitBtn');
+const switchToSmsBtn = document.getElementById('switchToSmsBtn');
+const switchToEmailLoginBtn = document.getElementById('switchToEmailLoginBtn');
 
 let isLoginMode = true;
+let isSmsMode = false;
 let isGoogleCompleteReg = false;
 
 // Populate Birthday
@@ -50,12 +64,11 @@ function populateBirthday() {
 }
 populateBirthday();
 
-// Phone Validation
+// Phone Validation for registration
 const regPhone = document.getElementById('regPhone');
 const phoneError = document.getElementById('phoneError');
 function validatePhone() {
     const val = regPhone.value.trim();
-    // Matches what user requested: +0 is 09123456789 (11 digits), without +0 is 9123456789 (10 digits)
     const regex = /^(0\d{10}|\d{10})$/;
     if (!regex.test(val)) {
         phoneError.style.display = 'block';
@@ -94,7 +107,7 @@ async function checkUser() {
     }
 }
 
-// Listen for auth events (e.g. returning from Google OAuth redirect)
+// Listen for auth events
 if (supabaseClient) {
     supabaseClient.auth.onAuthStateChange((event, session) => {
         if (session && session.user) {
@@ -106,8 +119,8 @@ if (supabaseClient) {
                 updateAuthUI(null);
                 isGoogleCompleteReg = true;
                 openAuthModal('register');
-                registerEmail.value = session.user.email;
-                registerEmail.disabled = true;
+                registerEmail.value = session.user.email || '';
+                registerEmail.disabled = !!session.user.email;
             }
             if (window.location.hash.includes('access_token')) {
                 window.history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -123,7 +136,8 @@ function updateAuthUI(user) {
         loginBtn.style.display = 'none';
         registerBtn.style.display = 'none';
         userInfo.style.display = 'flex';
-        userEmail.innerText = user.email;
+        // prefer phone if no email
+        userEmail.innerText = user.email || user.phone || '使用者';
     } else {
         loginBtn.style.display = 'inline-block';
         registerBtn.style.display = 'inline-block';
@@ -135,12 +149,15 @@ function updateAuthUI(user) {
 // Modal Toggle
 function openAuthModal(mode) {
     isLoginMode = mode === 'login';
+    isSmsMode = false;
     authTitle.innerText = isLoginMode ? '登入' : (isGoogleCompleteReg ? '完成註冊' : '註冊');
     
     loginForm.style.display = isLoginMode ? 'flex' : 'none';
+    smsLoginForm.style.display = 'none';
     registerForm.style.display = isLoginMode ? 'none' : 'flex';
+    verifyEmailScreen.style.display = 'none';
     
-    document.querySelector('.auth-divider').style.display = isGoogleCompleteReg ? 'none' : 'flex';
+    authDivider.style.display = isGoogleCompleteReg ? 'none' : 'flex';
     googleSignInBtn.style.display = isGoogleCompleteReg ? 'none' : 'flex';
     document.querySelector('.auth-switch').style.display = isGoogleCompleteReg ? 'none' : 'block';
     
@@ -148,9 +165,16 @@ function openAuthModal(mode) {
     authSwitchLink.innerText = isLoginMode ? '註冊' : '登入';
     authError.style.display = 'none';
     
+    // Reset SMS forms
+    otpGroup.style.display = 'none';
+    sendOtpBtn.style.display = 'block';
+    smsLoginSubmitBtn.style.display = 'none';
+    loginOtp.value = '';
+    
     if (!isGoogleCompleteReg) {
         loginForm.reset();
         registerForm.reset();
+        smsLoginForm.reset();
         registerEmail.disabled = false;
     }
     phoneError.style.display = 'none';
@@ -159,18 +183,33 @@ function openAuthModal(mode) {
 
 function closeAuthModal() {
     if (isGoogleCompleteReg) {
-        // If they close while pending registration, sign them out so they aren't stuck half-logged-in
+        // If they close while pending registration, sign them out
         supabaseClient.auth.signOut();
         isGoogleCompleteReg = false;
     }
     authModal.style.display = 'none';
 }
 
+// Switching Login Modes
+switchToSmsBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    isSmsMode = true;
+    loginForm.style.display = 'none';
+    smsLoginForm.style.display = 'flex';
+    authTitle.innerText = '手機簡訊登入';
+});
+
+switchToEmailLoginBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    isSmsMode = false;
+    smsLoginForm.style.display = 'none';
+    loginForm.style.display = 'flex';
+    authTitle.innerText = '登入';
+});
+
+// Google Sign-In
 googleSignInBtn.addEventListener('click', async () => {
-    if (!supabaseClient) {
-        alert("Supabase 無法載入，請重新整理或關閉廣告阻擋器！");
-        return;
-    }
+    if (!supabaseClient) return alert("Supabase 無法載入！");
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: window.location.href }
@@ -193,7 +232,7 @@ authSwitchLink.addEventListener('click', (e) => {
     openAuthModal(isLoginMode ? 'register' : 'login');
 });
 
-// Handle Login Submit
+// Handle Login Submit (Email)
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!supabaseClient) return alert("Supabase 無法載入！");
@@ -207,7 +246,12 @@ loginForm.addEventListener('submit', async (e) => {
             email: loginEmail.value, 
             password: loginPassword.value 
         });
-        if (error) throw error;
+        if (error) {
+            if (error.message.includes('Email not confirmed')) {
+                throw new Error("信箱尚未驗證，請前往信箱點擊驗證連結。");
+            }
+            throw error;
+        }
         
         // If user is not fully registered yet
         if (data.user && data.user.user_metadata && !data.user.user_metadata.is_registered) {
@@ -225,6 +269,64 @@ loginForm.addEventListener('submit', async (e) => {
     } finally {
         btn.disabled = false;
         btn.innerText = '登入';
+    }
+});
+
+// Handle SMS OTP Sending
+sendOtpBtn.addEventListener('click', async () => {
+    if (!loginPhone.value) return alert('請輸入手機號碼');
+    if (!supabaseClient) return alert("Supabase 無法載入！");
+    authError.style.display = 'none';
+    
+    sendOtpBtn.disabled = true;
+    sendOtpBtn.innerText = '發送中...';
+    
+    const phone = `${loginPhoneCode.value}${loginPhone.value.replace(/^0/, '')}`; // format TW properly
+    
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithOtp({ phone });
+        if (error) throw error;
+        
+        otpGroup.style.display = 'flex';
+        sendOtpBtn.style.display = 'none';
+        smsLoginSubmitBtn.style.display = 'block';
+        alert("驗證碼已發送！");
+    } catch (error) {
+        authError.innerText = error.message;
+        authError.style.display = 'block';
+        sendOtpBtn.disabled = false;
+        sendOtpBtn.innerText = '發送驗證碼';
+    }
+});
+
+// Handle SMS Login Submit
+smsLoginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!supabaseClient) return;
+    authError.style.display = 'none';
+    
+    smsLoginSubmitBtn.disabled = true;
+    smsLoginSubmitBtn.innerText = '驗證中...';
+    
+    const phone = `${loginPhoneCode.value}${loginPhone.value.replace(/^0/, '')}`;
+    const token = loginOtp.value;
+    
+    try {
+        const { data, error } = await supabaseClient.auth.verifyOtp({ phone, token, type: 'sms' });
+        if (error) throw error;
+        
+        if (data.user && data.user.user_metadata && !data.user.user_metadata.is_registered) {
+             isGoogleCompleteReg = true;
+             openAuthModal('register');
+        } else {
+             closeAuthModal();
+             checkUser();
+        }
+    } catch (error) {
+        authError.innerText = error.message;
+        authError.style.display = 'block';
+        smsLoginSubmitBtn.disabled = false;
+        smsLoginSubmitBtn.innerText = '驗證並登入';
     }
 });
 
@@ -261,7 +363,7 @@ registerForm.addEventListener('submit', async (e) => {
             closeAuthModal();
             checkUser();
         } else {
-            // Normal signup
+            // Normal signup - Send verification email
             const { data, error } = await supabaseClient.auth.signUp({ 
                 email, 
                 password,
@@ -271,9 +373,15 @@ registerForm.addEventListener('submit', async (e) => {
             if (data.user && data.user.identities && data.user.identities.length === 0) {
                 throw new Error("此信箱已被註冊");
             }
-            alert("註冊成功！如果需要驗證信，請前往信箱確認。");
-            closeAuthModal();
-            checkUser();
+            
+            // Show verification screen
+            registerForm.style.display = 'none';
+            authTitle.innerText = '驗證信箱';
+            document.getElementById('verifyEmailTarget').innerText = email;
+            verifyEmailScreen.style.display = 'block';
+            authDivider.style.display = 'none';
+            googleSignInBtn.style.display = 'none';
+            document.querySelector('.auth-switch').style.display = 'none';
         }
     } catch (error) {
         authError.innerText = error.message;
@@ -281,6 +389,18 @@ registerForm.addEventListener('submit', async (e) => {
     } finally {
         registerSubmitBtn.disabled = false;
         registerSubmitBtn.innerText = '註冊';
+    }
+});
+
+// Resend Email button
+document.getElementById('resendEmailBtn').addEventListener('click', async () => {
+    const email = document.getElementById('verifyEmailTarget').innerText;
+    try {
+        const { error } = await supabaseClient.auth.resend({ type: 'signup', email });
+        if (error) throw error;
+        alert('驗證信已重新發送！');
+    } catch (error) {
+        alert('發送失敗：' + error.message);
     }
 });
 
