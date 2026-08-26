@@ -136,6 +136,7 @@
             backdrop-filter: blur(4px);
             align-items: center;
             justify-content: center;
+            overflow-y: auto;
         }
 
         .modal-content {
@@ -143,9 +144,10 @@
             padding: 30px 40px;
             border-radius: 20px;
             width: 90%;
-            max-width: 400px;
+            max-width: 450px;
             box-shadow: var(--shadow-lg);
             position: relative;
+            margin: 20px auto;
         }
 
         .close-btn {
@@ -169,17 +171,57 @@
             margin-top: 20px;
         }
 
-        .auth-input {
+        .auth-input, .auth-select {
             padding: 12px 15px;
             border: 1px solid var(--border-color);
             border-radius: 10px;
             font-size: 1rem;
             outline: none;
             transition: border-color 0.2s;
+            width: 100%;
+            background: #fff;
+            color: var(--text-main);
         }
 
-        .auth-input:focus {
+        .auth-input:focus, .auth-select:focus {
             border-color: var(--primary);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .phone-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .phone-group select {
+            width: 35%;
+        }
+
+        .phone-group input {
+            width: 65%;
+        }
+        
+        .error-text {
+            color: var(--danger);
+            font-size: 0.8rem;
+            margin-top: -10px;
+            display: none;
         }
 
         .auth-switch {
@@ -709,10 +751,73 @@
             <span class="close-btn" id="closeModalBtn">&times;</span>
             <h2 id="authTitle" style="text-align: center; margin-bottom: 10px;">登入</h2>
             <div id="authError" style="color: var(--danger); font-size: 0.9rem; text-align: center; display: none;"></div>
-            <form id="authForm" class="auth-form">
-                <input type="email" id="emailInput" class="auth-input" placeholder="電子郵件" required>
-                <input type="password" id="passwordInput" class="auth-input" placeholder="密碼" required>
-                <button type="submit" id="authSubmitBtn" class="btn" style="padding: 12px; width: 100%;">登入</button>
+            
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form">
+                <input type="email" id="loginEmail" class="auth-input" placeholder="電子郵件" required>
+                <input type="password" id="loginPassword" class="auth-input" placeholder="密碼" required>
+                <button type="submit" class="btn" style="padding: 12px; width: 100%;">登入</button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">電子郵件</label>
+                    <input type="email" id="registerEmail" class="auth-input" placeholder="電子郵件" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">密碼</label>
+                    <input type="password" id="registerPassword" class="auth-input" placeholder="密碼 (至少6位)" minlength="6" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">生日</label>
+                    <div class="form-row">
+                        <select id="regYear" class="auth-select" required><option value="">年</option></select>
+                        <select id="regMonth" class="auth-select" required><option value="">月</option></select>
+                        <select id="regDay" class="auth-select" required><option value="">日</option></select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">性別</label>
+                    <select id="regGender" class="auth-select" required>
+                        <option value="">請選擇</option>
+                        <option value="male">男</option>
+                        <option value="female">女</option>
+                        <option value="other">其他</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">手機號碼</label>
+                    <div class="phone-group">
+                        <select id="regPhoneCode" class="auth-select" required>
+                            <option value="+886">台灣 (+886)</option>
+                            <option value="+86">中國 (+86)</option>
+                            <option value="+852">香港 (+852)</option>
+                            <option value="+81">日本 (+81)</option>
+                            <option value="+1">美國 (+1)</option>
+                        </select>
+                        <input type="tel" id="regPhone" class="auth-input" placeholder="請輸入手機號碼" required>
+                    </div>
+                    <div id="phoneError" class="error-text">請輸入正確數字</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">從何處得知我們？</label>
+                    <select id="regSource" class="auth-select" required>
+                        <option value="">請選擇</option>
+                        <option value="threads">Threads</option>
+                        <option value="ig">IG</option>
+                        <option value="fb">FB</option>
+                        <option value="friends">親朋好友</option>
+                        <option value="blogger">博主</option>
+                    </select>
+                </div>
+
+                <button type="submit" id="registerSubmitBtn" class="btn" style="padding: 12px; width: 100%;">註冊</button>
             </form>
             
             <div class="auth-divider">

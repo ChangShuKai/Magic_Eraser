@@ -22,23 +22,73 @@ const logoutBtn = document.getElementById('logoutBtn');
 const authModal = document.getElementById('authModal');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const authTitle = document.getElementById('authTitle');
-const authForm = document.getElementById('authForm');
-const emailInput = document.getElementById('emailInput');
-const passwordInput = document.getElementById('passwordInput');
-const authSubmitBtn = document.getElementById('authSubmitBtn');
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+const loginEmail = document.getElementById('loginEmail');
+const loginPassword = document.getElementById('loginPassword');
+const registerEmail = document.getElementById('registerEmail');
+const registerPassword = document.getElementById('registerPassword');
+const registerSubmitBtn = document.getElementById('registerSubmitBtn');
 const authSwitchText = document.getElementById('authSwitchText');
 const authSwitchLink = document.getElementById('authSwitchLink');
 const authError = document.getElementById('authError');
 const googleSignInBtn = document.getElementById('googleSignInBtn');
 
 let isLoginMode = true;
+let isGoogleCompleteReg = false;
+
+// Populate Birthday
+function populateBirthday() {
+    const yearSelect = document.getElementById('regYear');
+    const monthSelect = document.getElementById('regMonth');
+    const daySelect = document.getElementById('regDay');
+    
+    const currentYear = new Date().getFullYear();
+    for(let i = currentYear; i >= 1930; i--) yearSelect.add(new Option(i, i));
+    for(let i = 1; i <= 12; i++) monthSelect.add(new Option(i, i));
+    for(let i = 1; i <= 31; i++) daySelect.add(new Option(i, i));
+}
+populateBirthday();
+
+// Phone Validation
+const regPhone = document.getElementById('regPhone');
+const phoneError = document.getElementById('phoneError');
+function validatePhone() {
+    const val = regPhone.value.trim();
+    // Matches what user requested: +0 is 09123456789 (11 digits), without +0 is 9123456789 (10 digits)
+    const regex = /^(0\d{10}|\d{10})$/;
+    if (!regex.test(val)) {
+        phoneError.style.display = 'block';
+        return false;
+    } else {
+        phoneError.style.display = 'none';
+        return true;
+    }
+}
+regPhone.addEventListener('input', () => {
+    if (regPhone.value.length > 0) validatePhone();
+    else phoneError.style.display = 'none';
+});
 
 // Initialize Auth State
 async function checkUser() {
     if (!supabaseClient) return;
     try {
         const { data: { user } } = await supabaseClient.auth.getUser();
-        updateAuthUI(user);
+        if (user) {
+            // Check if registered
+            if (user.user_metadata && user.user_metadata.is_registered) {
+                updateAuthUI(user);
+            } else {
+                // Not registered fully, force registration modal
+                isGoogleCompleteReg = true;
+                openAuthModal('register');
+                registerEmail.value = user.email;
+                registerEmail.disabled = true; // prevent changing google email
+            }
+        } else {
+            updateAuthUI(null);
+        }
     } catch (e) {
         console.error(e);
     }
@@ -48,8 +98,17 @@ async function checkUser() {
 if (supabaseClient) {
     supabaseClient.auth.onAuthStateChange((event, session) => {
         if (session && session.user) {
-            updateAuthUI(session.user);
-            // Optionally remove the hash from the URL to clean it up
+            if (session.user.user_metadata && session.user.user_metadata.is_registered) {
+                updateAuthUI(session.user);
+                authModal.style.display = 'none';
+            } else {
+                // Incomplete Google registration
+                updateAuthUI(null);
+                isGoogleCompleteReg = true;
+                openAuthModal('register');
+                registerEmail.value = session.user.email;
+                registerEmail.disabled = true;
+            }
             if (window.location.hash.includes('access_token')) {
                 window.history.replaceState(null, '', window.location.pathname + window.location.search);
             }
@@ -76,16 +135,34 @@ function updateAuthUI(user) {
 // Modal Toggle
 function openAuthModal(mode) {
     isLoginMode = mode === 'login';
-    authTitle.innerText = isLoginMode ? '登入' : '註冊';
-    authSubmitBtn.innerText = isLoginMode ? '登入' : '註冊';
+    authTitle.innerText = isLoginMode ? '登入' : (isGoogleCompleteReg ? '完成註冊' : '註冊');
+    
+    loginForm.style.display = isLoginMode ? 'flex' : 'none';
+    registerForm.style.display = isLoginMode ? 'none' : 'flex';
+    
+    document.querySelector('.auth-divider').style.display = isGoogleCompleteReg ? 'none' : 'flex';
+    googleSignInBtn.style.display = isGoogleCompleteReg ? 'none' : 'flex';
+    document.querySelector('.auth-switch').style.display = isGoogleCompleteReg ? 'none' : 'block';
+    
     authSwitchText.innerText = isLoginMode ? '還沒有帳號？ ' : '已經有帳號？ ';
     authSwitchLink.innerText = isLoginMode ? '註冊' : '登入';
     authError.style.display = 'none';
-    authForm.reset();
+    
+    if (!isGoogleCompleteReg) {
+        loginForm.reset();
+        registerForm.reset();
+        registerEmail.disabled = false;
+    }
+    phoneError.style.display = 'none';
     authModal.style.display = 'flex';
 }
 
 function closeAuthModal() {
+    if (isGoogleCompleteReg) {
+        // If they close while pending registration, sign them out so they aren't stuck half-logged-in
+        supabaseClient.auth.signOut();
+        isGoogleCompleteReg = false;
+    }
     authModal.style.display = 'none';
 }
 
@@ -96,9 +173,7 @@ googleSignInBtn.addEventListener('click', async () => {
     }
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-            redirectTo: window.location.href, // 確保跳轉回當前網址
-        }
+        options: { redirectTo: window.location.href }
     });
     if (error) {
         authError.innerText = error.message;
@@ -106,8 +181,8 @@ googleSignInBtn.addEventListener('click', async () => {
     }
 });
 
-loginBtn.addEventListener('click', () => openAuthModal('login'));
-registerBtn.addEventListener('click', () => openAuthModal('register'));
+loginBtn.addEventListener('click', () => { isGoogleCompleteReg = false; openAuthModal('login'); });
+registerBtn.addEventListener('click', () => { isGoogleCompleteReg = false; openAuthModal('register'); });
 closeModalBtn.addEventListener('click', closeAuthModal);
 window.addEventListener('click', (e) => {
     if (e.target === authModal) closeAuthModal();
@@ -118,40 +193,94 @@ authSwitchLink.addEventListener('click', (e) => {
     openAuthModal(isLoginMode ? 'register' : 'login');
 });
 
-// Handle Auth Submit
-authForm.addEventListener('submit', async (e) => {
+// Handle Login Submit
+loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!supabaseClient) {
-        alert("Supabase 無法載入，請重新整理或關閉廣告阻擋器！");
-        return;
-    }
+    if (!supabaseClient) return alert("Supabase 無法載入！");
     authError.style.display = 'none';
-    authSubmitBtn.disabled = true;
-    authSubmitBtn.innerText = '請稍候...';
-    
-    const email = emailInput.value;
-    const password = passwordInput.value;
+    const btn = loginForm.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerText = '請稍候...';
     
     try {
-        if (isLoginMode) {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) throw error;
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ 
+            email: loginEmail.value, 
+            password: loginPassword.value 
+        });
+        if (error) throw error;
+        
+        // If user is not fully registered yet
+        if (data.user && data.user.user_metadata && !data.user.user_metadata.is_registered) {
+             isGoogleCompleteReg = true;
+             openAuthModal('register');
+             registerEmail.value = data.user.email;
+             registerEmail.disabled = true;
         } else {
-            const { data, error } = await supabaseClient.auth.signUp({ email, password });
+             closeAuthModal();
+             checkUser();
+        }
+    } catch (error) {
+        authError.innerText = error.message;
+        authError.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.innerText = '登入';
+    }
+});
+
+// Handle Register Submit
+registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!validatePhone()) return;
+    if (!supabaseClient) return alert("Supabase 無法載入！");
+    
+    authError.style.display = 'none';
+    registerSubmitBtn.disabled = true;
+    registerSubmitBtn.innerText = '請稍候...';
+    
+    const email = registerEmail.value;
+    const password = registerPassword.value;
+    const metadata = {
+        is_registered: true,
+        birthday: `${document.getElementById('regYear').value}-${document.getElementById('regMonth').value}-${document.getElementById('regDay').value}`,
+        gender: document.getElementById('regGender').value,
+        phone: `${document.getElementById('regPhoneCode').value} ${document.getElementById('regPhone').value}`,
+        source: document.getElementById('regSource').value
+    };
+    
+    try {
+        if (isGoogleCompleteReg) {
+            // Update existing Google user with password and metadata
+            const { data, error } = await supabaseClient.auth.updateUser({ 
+                password: password,
+                data: metadata 
+            });
+            if (error) throw error;
+            alert("註冊完成！");
+            isGoogleCompleteReg = false;
+            closeAuthModal();
+            checkUser();
+        } else {
+            // Normal signup
+            const { data, error } = await supabaseClient.auth.signUp({ 
+                email, 
+                password,
+                options: { data: metadata }
+            });
             if (error) throw error;
             if (data.user && data.user.identities && data.user.identities.length === 0) {
                 throw new Error("此信箱已被註冊");
             }
             alert("註冊成功！如果需要驗證信，請前往信箱確認。");
+            closeAuthModal();
+            checkUser();
         }
-        closeAuthModal();
-        checkUser();
     } catch (error) {
         authError.innerText = error.message;
         authError.style.display = 'block';
     } finally {
-        authSubmitBtn.disabled = false;
-        authSubmitBtn.innerText = isLoginMode ? '登入' : '註冊';
+        registerSubmitBtn.disabled = false;
+        registerSubmitBtn.innerText = '註冊';
     }
 });
 
