@@ -96,6 +96,9 @@ googleSignInBtn.addEventListener('click', async () => {
     }
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
+        options: {
+            redirectTo: window.location.href, // 確保跳轉回當前網址
+        }
     });
     if (error) {
         authError.innerText = error.message;
