@@ -4,6 +4,9 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 import os
 
+# 強制限制 PyTorch 只使用 2 個 CPU 執行緒，避免佔用大量 CPU 資源
+torch.set_num_threads(2)
+
 from model import MobileNetV3UNet
 from loss import CompositeLoss
 from data_synthesis import SyntheticExamDataset
@@ -16,9 +19,10 @@ def train():
     model = MobileNetV3UNet().to(device)
     
     # 建立 DataLoader
-    batch_size = 16 # 使用 16 以符合大多數 GPU 記憶體 (原計畫 32 可能需要 12GB+ VRAM)
-    dataset = SyntheticExamDataset(length=10000, patch_size=512) # 示範用 10000
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+    batch_size = 32 # 依照要求提高到 32，佔用約 6~7GB GPU VRAM
+    dataset = SyntheticExamDataset(length=10000, patch_size=512)    
+    # 強制使用單執行緒 (num_workers=0)，絕對不佔用額外的系統 RAM 與 CPU
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
     
     # 損失函數與優化器
     criterion = CompositeLoss(lambda_l1=1.0, lambda_ssim=0.5, lambda_sobel=0.5).to(device)
@@ -40,8 +44,8 @@ def train():
         start_epoch = int(latest_ckpt.split('_')[-1].split('.')[0])
         model.load_state_dict(torch.load(latest_ckpt, map_location=device))
         print(f"Resuming training from {latest_ckpt} (Epoch {start_epoch})")
-    # 限制跑 5 輪
-    target_epochs = start_epoch + 5
+    # 放開限制，進行馬拉松式長期訓練 (額外訓練 100 輪)
+    target_epochs = start_epoch + 100
     
     # 訓練迴圈
     for epoch in range(start_epoch, target_epochs):

@@ -44,6 +44,21 @@ async function checkUser() {
     }
 }
 
+// Listen for auth events (e.g. returning from Google OAuth redirect)
+if (supabaseClient) {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (session && session.user) {
+            updateAuthUI(session.user);
+            // Optionally remove the hash from the URL to clean it up
+            if (window.location.hash.includes('access_token')) {
+                window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+        } else {
+            updateAuthUI(null);
+        }
+    });
+}
+
 function updateAuthUI(user) {
     if (user) {
         loginBtn.style.display = 'none';

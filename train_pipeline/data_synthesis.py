@@ -133,7 +133,12 @@ class SyntheticExamDataset(Dataset):
             text = self.generate_random_text()
             x = random.randint(10, 50)
             y = 30 + i * 50 + random.randint(-10, 10)
-            draw.text((x, y), text, fill=random.randint(0, 50), font=font)
+            # 讓印刷字體的顏色有深淺變化 (不要永遠是純黑，模擬掃描的灰色)
+            draw.text((x, y), text, fill=random.randint(0, 120), font=font)
+            
+        # 對乾淨背景加入輕微的高斯模糊，模擬真實考卷掃描的模糊感
+        if random.random() < 0.8:
+            img = img.filter(ImageFilter.GaussianBlur(radius=random.uniform(0.1, 0.7)))
             
         return img
 
@@ -144,11 +149,11 @@ class SyntheticExamDataset(Dataset):
         draw = ImageDraw.Draw(overlay)
         
         # 1. 模擬手寫文字 (使用手寫字體)
-        num_hw_lines = random.randint(2, 6)
+        num_hw_lines = random.randint(2, 8)
         font_path = random.choice(self.hw_fonts) if self.hw_fonts else None
         for _ in range(num_hw_lines):
             if font_path:
-                font_size = random.randint(25, 45)
+                font_size = random.randint(20, 50) # 手寫字體大小變化更大
                 try:
                     font = ImageFont.truetype(font_path, font_size)
                 except:
@@ -160,17 +165,22 @@ class SyntheticExamDataset(Dataset):
             x = random.randint(10, self.patch_size - 100)
             y = random.randint(10, self.patch_size - 50)
             
-            # 手寫字通常比較不那麼黑 (深灰色) 且帶有一點透明度
-            stroke_color = random.randint(20, 100)
-            alpha = random.randint(180, 255)
+            # 手寫字顏色變化 (包含極深的黑色，模擬黑筆)
+            stroke_color = random.randint(0, 150)
+            alpha = random.randint(150, 255)
             
             # 建立一個單獨的圖片來繪製文字以便旋轉
             txt_img = Image.new('RGBA', (self.patch_size, self.patch_size), (255, 255, 255, 0))
             txt_draw = ImageDraw.Draw(txt_img)
-            txt_draw.text((x, y), text, fill=(stroke_color, stroke_color, stroke_color, alpha), font=font)
+            
+            # 使用 stroke_width 模擬不同粗細的筆
+            try:
+                txt_draw.text((x, y), text, fill=(stroke_color, stroke_color, stroke_color, alpha), font=font, stroke_width=random.randint(0, 2), stroke_fill=(stroke_color, stroke_color, stroke_color, alpha))
+            except:
+                txt_draw.text((x, y), text, fill=(stroke_color, stroke_color, stroke_color, alpha), font=font)
             
             # 隨機旋轉
-            angle = random.uniform(-15, 15)
+            angle = random.uniform(-25, 25)
             txt_img = txt_img.rotate(angle, resample=Image.BICUBIC, center=(x, y))
             
             # 疊加上去
@@ -178,11 +188,11 @@ class SyntheticExamDataset(Dataset):
 
         # 2. 模擬隨機線條與圈選
         draw = ImageDraw.Draw(overlay)
-        num_strokes = random.randint(2, 5)
+        num_strokes = random.randint(3, 8)
         for _ in range(num_strokes):
-            stroke_color = random.randint(30, 120)
-            alpha = random.randint(150, 255)
-            width = random.randint(1, 4)
+            stroke_color = random.randint(0, 120)
+            alpha = random.randint(120, 255)
+            width = random.randint(1, 6) # 模擬更粗的筆劃
             
             points = []
             num_points = random.randint(3, 8)
@@ -194,14 +204,22 @@ class SyntheticExamDataset(Dataset):
             if random.random() < 0.5:
                 x = random.randint(50, self.patch_size - 50)
                 y = random.randint(50, self.patch_size - 50)
-                r = random.randint(20, 50)
-                draw.ellipse([x-r, y-r, x+r, y+r], outline=(stroke_color, stroke_color, stroke_color, alpha), width=random.randint(2, 4))
+                r = random.randint(20, 60)
+                draw.ellipse([x-r, y-r, x+r, y+r], outline=(stroke_color, stroke_color, stroke_color, alpha), width=random.randint(2, 6))
                 
         # 稍微對手寫層做高斯模糊，模擬原子筆暈染
-        overlay = overlay.filter(ImageFilter.GaussianBlur(radius=random.uniform(0.3, 0.8)))
+        overlay = overlay.filter(ImageFilter.GaussianBlur(radius=random.uniform(0.3, 1.2)))
         
         # 合成影像
         out_img = Image.alpha_composite(img, overlay).convert("L")
+        
+        # 對最終影像加入隨機噪點 (JPEG artifacts 模擬)
+        if random.random() < 0.5:
+            arr = np.array(out_img, dtype=np.float32)
+            noise = np.random.normal(0, random.uniform(2, 10), arr.shape)
+            arr = np.clip(arr + noise, 0, 255).astype(np.uint8)
+            out_img = Image.fromarray(arr)
+            
         return out_img
 
     def __getitem__(self, idx):
