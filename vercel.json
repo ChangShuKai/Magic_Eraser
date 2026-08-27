@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api-proxy/clean",
-      "destination": "https://changshukai--exam-cleaner-cleanerservice-clean-image.modal.run"
+      "destination": "https://magic-eraser-34780901980.asia-east1.run.app/api/index"
     }
   ]
 }

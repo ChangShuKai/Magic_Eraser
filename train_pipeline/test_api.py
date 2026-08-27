@@ -1,6 +1,6 @@
 import requests
 
-url = "https://changshukai--exam-cleaner-cleanerservice-clean-image.modal.run"
+url = "https://magic-eraser-34780901980.asia-east1.run.app/api/index"
 with open("D:\\書愷\\硬碟暫放\\Python\\去手寫\\train_pipeline\\my_test.png", "rb") as f:
     files = {"image": f}
     data = {

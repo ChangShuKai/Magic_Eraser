@@ -14,6 +14,53 @@ app = Flask(__name__)
 @app.route('/api/index', methods=['POST'])
 def process():
     """處理圖片上傳與轉換的 API (Vercel Serverless Function)"""
+    # 1. 驗證 JWT Token (與 Modal 版本相同的資安防護)
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({'error': 'Unauthorized. Please log in.'}), 401
+        
+    token = auth_header.split(" ")[1]
+    
+    import requests
+    SUPABASE_URL = "https://qrjkjdlwhmihxkqnrxzu.supabase.co"
+    SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyamtqZGx3aG1paHhrcW5yeHp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDYzMjYsImV4cCI6MjEwMzEyMjMyNn0.Z4VAfv6SIUvibLv5h02Arp9gq3jeCPWwBc_S1zuNUDA"
+    
+    resp = requests.get(
+        f"{SUPABASE_URL}/auth/v1/user",
+        headers={"Authorization": f"Bearer {token}", "apikey": SUPABASE_ANON_KEY}
+    )
+    if resp.status_code != 200:
+        return jsonify({'error': 'Invalid token or session expired.'}), 401
+        
+    user_data = resp.json()
+    user_id = user_data.get("id")
+    
+    # 檢查 VIP 狀態
+    profile_resp = requests.get(
+        f"{SUPABASE_URL}/rest/v1/profiles?select=is_vip&id=eq.{user_id}",
+        headers={"Authorization": f"Bearer {token}", "apikey": SUPABASE_ANON_KEY}
+    )
+    is_vip = False
+    if profile_resp.status_code == 200:
+        profiles = profile_resp.json()
+        if len(profiles) > 0:
+            is_vip = profiles[0].get("is_vip", False)
+            
+    # 頻率限制 (非 VIP 會員每小時 30 張，單機記憶體暫存)
+    if not is_vip:
+        import time
+        if not hasattr(app, 'rate_limits'):
+            app.rate_limits = {}
+        
+        current_hour = int(time.time() // 3600)
+        usage_key = f"{user_id}_{current_hour}"
+        count = app.rate_limits.get(usage_key, 0)
+        
+        if count >= 30:
+            return jsonify({'error': 'Rate limit exceeded. Free users are limited to 30 images per hour. Please upgrade to SVIP for unlimited access.'}), 429
+            
+        app.rate_limits[usage_key] = count + 1
+
     if 'image' not in request.files:
         return jsonify({'error': 'No image uploaded'}), 400
         
@@ -36,6 +83,13 @@ def process():
     
     if img is None:
         return jsonify({'error': 'Invalid image file'}), 400
+        
+    # 防禦解壓縮炸彈 / OOM 攻擊 (限制最大邊長為 2048)
+    max_dim = 2048
+    h, w = img.shape[:2]
+    if h > max_dim or w > max_dim:
+        scale = max_dim / max(h, w)
+        img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
 
     try:
         # 1. 套用背景白化 (與 main.py 邏輯一致)
