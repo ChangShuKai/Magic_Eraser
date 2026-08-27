@@ -821,6 +821,35 @@ processBtn.addEventListener('click', async () => {
 
     let completedCount = 0;
 
+    // 壓縮圖片輔助函數
+    async function compressImage(file, maxMB) {
+        if (file.size <= maxMB * 1024 * 1024) return file;
+        return new Promise((resolve) => {
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const maxDim = 2048;
+                if (width > maxDim || height > maxDim) {
+                    const ratio = maxDim / Math.max(width, height);
+                    width *= ratio;
+                    height *= ratio;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                    resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
+                }, 'image/jpeg', 0.85);
+            };
+            img.src = url;
+        });
+    }
+
     for (let i = 0; i < selectedFiles.length; i++) {
         const fileObj = selectedFiles[i];
 
@@ -834,8 +863,11 @@ processBtn.addEventListener('click', async () => {
         progressBar.style.width = `${percent}%`;
         progressBar.classList.remove('progress-indeterminate');
 
+        // 自動壓縮以符合 Vercel 4.5MB 限制
+        const fileToUpload = await compressImage(fileObj.file, 4.0);
+
         const formData = new FormData();
-        formData.append('image', fileObj.file);
+        formData.append('image', fileToUpload);
         formData.append('color_type', colorType);
         formData.append('fill_method', useInpaint ? 'inpaint' : 'white');
         formData.append('enhance', enhance ? 'true' : 'false');

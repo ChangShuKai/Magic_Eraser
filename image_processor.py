@@ -153,10 +153,21 @@ def process_image(image, color_type='red', tolerance=50, fill_method='white'):
         # 直接將遮罩區域塗白
         result[mask > 0] = (255, 255, 255)
     else:
-        # 使用 inpainting 修補 (較慢，但對於非純白背景可能較好)
-        # 這裡提供作為一個進階選項
-        inpaint_radius = 3
-        result = cv2.inpaint(result, mask, inpaint_radius, cv2.INPAINT_TELEA)
+        # 使用 inpainting 修補
+        # 為避免大圖導致 cv2.inpaint 運算過久 (引發 Timeout/OOM)，先縮小再修補
+        h, w = result.shape[:2]
+        max_inpaint_dim = 800
+        scale = max_inpaint_dim / max(h, w)
+        if scale < 1.0:
+            small_res = cv2.resize(result, (0, 0), fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+            small_mask = cv2.resize(mask, (0, 0), fx=scale, fy=scale, interpolation=cv2.INTER_NEAREST)
+            small_inp = cv2.inpaint(small_res, small_mask, 3, cv2.INPAINT_TELEA)
+            inp = cv2.resize(small_inp, (w, h), interpolation=cv2.INTER_CUBIC)
+            # 僅取代遮罩區域
+            result[mask > 0] = inp[mask > 0]
+        else:
+            inpaint_radius = 3
+            result = cv2.inpaint(result, mask, inpaint_radius, cv2.INPAINT_TELEA)
 
     return result
 
