@@ -59,14 +59,23 @@ if start_idx != -1 and end_idx != -1:
                     <div class="setting-section">
                         <span class="setting-label">進階畫質增強</span>
                         <div class="toggle-group">
-                            <label class="toggle-label" id="label_inpaint">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span class="toggle-text">✨ 使用 AI 智慧修補 (Inpaint)</span>
-                                    <span class="vip-badge">SVIP專屬</span>
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <label class="toggle-label" id="label_inpaint">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span class="toggle-text">✨ 使用 AI 智慧修補 (Inpaint)</span>
+                                        <span class="vip-badge">SVIP專屬</span>
+                                        <span class="beta-badge">BETA</span>
+                                    </div>
+                                    <input type="checkbox" id="cb_inpaint">
+                                    <div class="toggle-switch"></div>
+                                </label>
+                                <div style="display: flex; align-items: center; gap: 8px; padding: 0 4px;">
+                                    <span style="font-size: 0.85rem; color: #6b7280; font-weight: 600;">選擇模型：</span>
+                                    <select id="inpaint_model" style="padding: 6px 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 0.85rem; outline: none; background: #fff; cursor: pointer; flex: 1;">
+                                        <option value="klareo-1-flash">Klareo-1 flash</option>
+                                    </select>
                                 </div>
-                                <input type="checkbox" id="cb_inpaint">
-                                <div class="toggle-switch"></div>
-                            </label>
+                            </div>
                             <label class="toggle-label" id="label_enhance">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <span class="toggle-text">🌓 增強黑白對比度</span>

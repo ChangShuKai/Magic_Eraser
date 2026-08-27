@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap, QPainter, QIcon, QPalette, QBrush, QColor, QFont
 
-from image_processor import process_image, enhance_text, whiten_background
+from image_processor import process_image, enhance_text, whiten_background, perspective_correction
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -184,16 +184,24 @@ class ProcessWorker(QThread):
     finished_row = pyqtSignal(int, object)
     all_done = pyqtSignal()
 
-    def __init__(self, image_rows, color_type, fill_method, enhance):
+    def __init__(self, image_rows, color_type, fill_method, enhance, deskew, whiten):
         super().__init__()
         self.image_rows = image_rows
         self.color_type = color_type
         self.fill_method = fill_method
         self.enhance = enhance
+        self.deskew = deskew
+        self.whiten = whiten
 
     def run(self):
         for i, row in enumerate(self.image_rows):
-            processed = process_image(row.original_image, self.color_type, 50, self.fill_method)
+            img = row.original_image.copy()
+            if self.deskew:
+                img = perspective_correction(img)
+            if self.whiten:
+                img = whiten_background(img)
+                
+            processed = process_image(img, self.color_type, 50, self.fill_method)
             if self.enhance: processed = enhance_text(processed)
             self.finished_row.emit(i, processed)
             self.progress.emit(int((i + 1) / len(self.image_rows) * 100))
@@ -302,14 +310,24 @@ class MainWindow(QMainWindow):
             color_row.addWidget(r)
         options_vbox.addLayout(color_row)
 
-        # 勾選行
-        check_row = QHBoxLayout()
+        # 勾選行1 (預處理)
+        check_row1 = QHBoxLayout()
+        self.cb_deskew = QCheckBox("自動歪斜修正")
+        self.cb_deskew.setChecked(True)
+        self.cb_whiten = QCheckBox("背景塗白 (去灰底)")
+        self.cb_whiten.setChecked(True)
+        check_row1.addWidget(self.cb_deskew)
+        check_row1.addWidget(self.cb_whiten)
+        options_vbox.addLayout(check_row1)
+
+        # 勾選行2 (後處理)
+        check_row2 = QHBoxLayout()
         self.cb_inpaint = QCheckBox("使用智慧修補 (修補殘留網點)")
         self.cb_enhance = QCheckBox("增強黑白對比")
         self.cb_enhance.setChecked(True)
-        check_row.addWidget(self.cb_inpaint)
-        check_row.addWidget(self.cb_enhance)
-        options_vbox.addLayout(check_row)
+        check_row2.addWidget(self.cb_inpaint)
+        check_row2.addWidget(self.cb_enhance)
+        options_vbox.addLayout(check_row2)
         
         settings_layout.addLayout(options_vbox)
         settings_layout.addStretch()
@@ -353,7 +371,6 @@ class MainWindow(QMainWindow):
         for f in files:
             img = cv2.imdecode(np.fromfile(f, dtype=np.uint8), cv2.IMREAD_COLOR)
             if img is not None:
-                img = whiten_background(img)
                 row = ImageRow(f, img, self)
                 self.image_rows.append(row)
                 self.list_layout.addWidget(row)
@@ -373,7 +390,7 @@ class MainWindow(QMainWindow):
         self.progress_bar.show()
         color_type = 'both' if self.radio_both.isChecked() else ('red' if self.radio_red.isChecked() else 'blue')
         fill_method = 'inpaint' if self.cb_inpaint.isChecked() else 'white'
-        self.worker = ProcessWorker(self.image_rows, color_type, fill_method, self.cb_enhance.isChecked())
+        self.worker = ProcessWorker(self.image_rows, color_type, fill_method, self.cb_enhance.isChecked(), self.cb_deskew.isChecked(), self.cb_whiten.isChecked())
         self.worker.finished_row.connect(lambda idx, img: self.image_rows[idx].set_processed_image(img))
         self.worker.progress.connect(self.progress_bar.setValue)
         self.worker.all_done.connect(self.on_process_done)
