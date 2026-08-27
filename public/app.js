@@ -606,7 +606,10 @@ processBtn.addEventListener('click', async () => {
         formData.append('enhance', enhance ? 'true' : 'false');
 
         try {
-            const response = await fetch('https://changshukai--exam-cleaner-cleanerservice-clean-image.modal.run', {
+            // TODO: 等到 Cloud Run 部署完成後，將下方的 URL 替換為您的 Cloud Run 服務網址 (例如：https://your-cloud-run-url.a.run.app/api/index)
+            const API_URL = 'https://changshukai--exam-cleaner-cleanerservice-clean-image.modal.run';
+            
+            const response = await fetch(API_URL, {
                 method: 'POST',
                 body: formData
             });

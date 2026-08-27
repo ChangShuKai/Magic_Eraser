@@ -1,0 +1,16 @@
+__pycache__
+.git
+.gitignore
+.vercelignore
+*.pyc
+*.pyo
+*.pyd
+build/
+dist/
+public/
+web_app/
+venv/
+env/
+.venv/
+.env
+*.spec
