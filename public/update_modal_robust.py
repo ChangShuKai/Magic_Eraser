@@ -6,8 +6,8 @@ with open(html_path, 'r', encoding='utf-8') as f:
     html = f.read()
 
 # Make sure button has id "payBtn"
-old_btn = r'<button type="button" class="btn vip-btn" style="width: 100%;" onclick="alert\(\'尚未串接金流\'\)">前往付款</button>'
-new_btn = """<button type="button" id="payBtn" class="btn vip-btn" style="width: 100%;" onclick="alert('尚未串接金流')">前往付款</button>
+old_btn = r'<button type="button" class="btn vip-btn" style="width: 100%;" onclick="alert\(\'敬請期待\'\)">前往付款</button>'
+new_btn = """<button type="button" id="payBtn" class="btn vip-btn" style="width: 100%;" onclick="alert('敬請期待')">前往付款</button>
             <div id="currentPlanIndicator" style="display: none; padding: 14px 24px; width: 100%; background: #f3f4f6; color: #4b5563; border-radius: 12px; font-weight: bold;">目前已是 SVIP 方案</div>"""
 
 if 'id="payBtn"' not in html:
