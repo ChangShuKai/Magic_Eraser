@@ -19,6 +19,7 @@ def static_files(path):
     return app.send_static_file(path)
 
 @app.route('/api/process', methods=['POST'])
+@app.route('/api-proxy/clean', methods=['POST'])
 def process():
     """處理圖片上傳與轉換的 API"""
     if 'image' not in request.files:

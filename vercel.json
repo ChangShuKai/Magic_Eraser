@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api-proxy/clean",
+      "destination": "https://changshukai--exam-cleaner-cleanerservice-clean-image.modal.run"
+    }
+  ]
+}

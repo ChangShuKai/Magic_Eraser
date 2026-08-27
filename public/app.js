@@ -1,3 +1,40 @@
+
+// Toast Notification System
+window.showToast = function(msg, type='info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    let icon = '✨';
+    if(type === 'success') icon = '✅';
+    if(type === 'error') icon = '❌';
+    if(type === 'warning') icon = '⚠️';
+    toast.innerHTML = `
+        <div class="toast-icon">${icon}</div>
+        <div class="toast-content">${msg}</div>
+    `;
+    container.appendChild(toast);
+    
+    // trigger animation
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.classList.add('hide');
+        setTimeout(() => toast.remove(), 400);
+    }, 3000);
+};
+
+window.alert = function(msg) {
+    let type = 'info';
+    if (typeof msg === 'string') {
+        if (msg.includes('失敗') || msg.includes('無法') || msg.includes('請輸入') || msg.includes('錯誤') || msg.includes('只能')) type = 'error';
+        if (msg.includes('SVIP') && !msg.includes('失敗')) type = 'warning';
+        if (msg.includes('完成') || msg.includes('成功') || msg.includes('已發送')) type = 'success';
+    }
+    showToast(msg, type);
+};
+
 // --- Supabase Setup ---
 const SUPABASE_URL = 'https://qrjkjdlwhmihxkqnrxzu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyamtqZGx3aG1paHhrcW5yeHp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDYzMjYsImV4cCI6MjEwMzEyMjMyNn0.Z4VAfv6SIUvibLv5h02Arp9gq3jeCPWwBc_S1zuNUDA';
@@ -21,6 +58,8 @@ const logoutBtn = document.getElementById('logoutBtn');
 
 const authModal = document.getElementById('authModal');
 const closeModalBtn = document.getElementById('closeModalBtn');
+const subscribeModal = document.getElementById('subscribeModal');
+const closeSubscribeBtn = document.getElementById('closeSubscribeBtn');
 const authTitle = document.getElementById('authTitle');
 const loginForm = document.getElementById('loginForm');
 const smsLoginForm = document.getElementById('smsLoginForm');
@@ -161,7 +200,7 @@ async function updateAuthUI(user) {
                     planText.innerText = isUserVIP ? "目前方案: SVIP" : "目前方案: 免費方案";
                 }
                 if (subBtn) {
-                    subBtn.style.display = 'inline-block';
+                    subBtn.style.display = isUserVIP ? 'none' : 'inline-flex';
                 }
                 if (limitText) {
                     limitText.innerText = isUserVIP ? "SVIP 無限制上傳張數" : "一次最多支援上傳 3 張圖片";
@@ -176,7 +215,7 @@ async function updateAuthUI(user) {
                 const subBtn = document.getElementById('subscribeBtn');
                 const limitText = document.getElementById('limitText');
                 if (planText) planText.innerText = "目前方案: 免費方案";
-                if (subBtn) subBtn.style.display = 'inline-block';
+                if (subBtn) subBtn.style.display = isUserVIP ? 'none' : 'inline-flex';
                 if (limitText) limitText.innerText = "一次最多支援上傳 3 張圖片";
             }
         }
@@ -272,7 +311,16 @@ registerBtn.addEventListener('click', () => { isGoogleCompleteReg = false; openA
 closeModalBtn.addEventListener('click', closeAuthModal);
 window.addEventListener('click', (e) => {
     if (e.target === authModal) closeAuthModal();
+    if (subscribeModal && e.target === subscribeModal) subscribeModal.style.display = 'none';
 });
+document.getElementById('subscribeBtn').addEventListener('click', () => {
+    if (subscribeModal) subscribeModal.style.display = 'flex';
+});
+if (closeSubscribeBtn) {
+    closeSubscribeBtn.addEventListener('click', () => {
+        subscribeModal.style.display = 'none';
+    });
+}
 
 authSwitchLink.addEventListener('click', (e) => {
     e.preventDefault();
@@ -627,8 +675,8 @@ processBtn.addEventListener('click', async () => {
         formData.append('enhance', enhance ? 'true' : 'false');
 
         try {
-            // TODO: 等到 Cloud Run 部署完成後，將下方的 URL 替換為您的 Cloud Run 服務網址 (例如：https://your-cloud-run-url.a.run.app/api/index)
-            const API_URL = 'https://changshukai--exam-cleaner-cleanerservice-clean-image.modal.run';
+            // 透過 Vercel rewrite 或 Flask proxy 轉發，隱藏真實的 Modal API 網址
+            const API_URL = '/api-proxy/clean';
             
             const response = await fetch(API_URL, {
                 method: 'POST',
