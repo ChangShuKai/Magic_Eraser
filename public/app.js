@@ -153,12 +153,31 @@ async function updateAuthUI(user) {
             if (currentUserId === user.id) {
                 isUserVIP = (!error && data) ? !!data.is_vip : false;
                 document.getElementById('vipPill').style.display = isUserVIP ? 'inline-block' : 'none';
+                
+                const planText = document.getElementById('currentPlanText');
+                const subBtn = document.getElementById('subscribeBtn');
+                const limitText = document.getElementById('limitText');
+                if (planText) {
+                    planText.innerText = isUserVIP ? "目前方案: SVIP" : "目前方案: 免費方案";
+                }
+                if (subBtn) {
+                    subBtn.style.display = isUserVIP ? 'none' : 'inline-block';
+                }
+                if (limitText) {
+                    limitText.innerText = isUserVIP ? "SVIP 無限制上傳張數" : "一次最多支援上傳 3 張圖片";
+                }
             }
         } catch (err) {
             console.error('Error fetching VIP status:', err);
             if (currentUserId === user.id) {
                 isUserVIP = false;
                 document.getElementById('vipPill').style.display = 'none';
+                const planText = document.getElementById('currentPlanText');
+                const subBtn = document.getElementById('subscribeBtn');
+                const limitText = document.getElementById('limitText');
+                if (planText) planText.innerText = "目前方案: 免費方案";
+                if (subBtn) subBtn.style.display = 'inline-block';
+                if (limitText) limitText.innerText = "一次最多支援上傳 3 張圖片";
             }
         }
     } else {
@@ -169,6 +188,8 @@ async function updateAuthUI(user) {
         userEmail.innerText = '';
         isUserVIP = false;
         document.getElementById('vipPill').style.display = 'none';
+        const limitText = document.getElementById('limitText');
+        if (limitText) limitText.innerText = "一次最多支援上傳 3 張圖片";
     }
 }
 
@@ -452,7 +473,7 @@ const previewGallery = document.getElementById('previewGallery');
 const fileCountSpan = document.getElementById('fileCount');
 
 let selectedFiles = []; // Array of objects: { id, file, resultUrl, status }
-const MAX_FILES = 10;
+const MAX_FILES = 3;
 
 // 1. 處理檔案上傳
 fileInput.addEventListener('change', (e) => {
