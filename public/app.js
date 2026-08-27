@@ -161,7 +161,7 @@ async function updateAuthUI(user) {
                     planText.innerText = isUserVIP ? "目前方案: SVIP" : "目前方案: 免費方案";
                 }
                 if (subBtn) {
-                    subBtn.style.display = isUserVIP ? 'none' : 'inline-block';
+                    subBtn.style.display = 'inline-block';
                 }
                 if (limitText) {
                     limitText.innerText = isUserVIP ? "SVIP 無限制上傳張數" : "一次最多支援上傳 3 張圖片";
