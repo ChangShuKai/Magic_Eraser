@@ -191,6 +191,7 @@ async function updateAuthUI(user) {
                 
             if (currentUserId === user.id) {
                 isUserVIP = (!error && data) ? !!data.is_vip : false;
+                updateSubscriptionModal(isUserVIP);
                 document.getElementById('vipPill').style.display = isUserVIP ? 'inline-block' : 'none';
                 
                 const planText = document.getElementById('currentPlanText');
@@ -210,6 +211,7 @@ async function updateAuthUI(user) {
             console.error('Error fetching VIP status:', err);
             if (currentUserId === user.id) {
                 isUserVIP = false;
+                updateSubscriptionModal(false);
                 document.getElementById('vipPill').style.display = 'none';
                 const planText = document.getElementById('currentPlanText');
                 const subBtn = document.getElementById('subscribeBtn');
@@ -226,6 +228,7 @@ async function updateAuthUI(user) {
         userInfo.style.display = 'none';
         userEmail.innerText = '';
         isUserVIP = false;
+        updateSubscriptionModal(false);
         document.getElementById('vipPill').style.display = 'none';
         const limitText = document.getElementById('limitText');
         if (limitText) limitText.innerText = "一次最多支援上傳 3 張圖片";
@@ -860,3 +863,12 @@ document.querySelectorAll('input[name="color_type"]').forEach(radio => {
 window.addEventListener('resize', updateRadioGlider);
 // Run once on load
 setTimeout(updateRadioGlider, 100);
+
+function updateSubscriptionModal(isVip) {
+    const payBtn = document.getElementById('payBtn');
+    const planIndicator = document.getElementById('currentPlanIndicator');
+    if (payBtn && planIndicator) {
+        payBtn.style.display = isVip ? 'none' : 'inline-block';
+        planIndicator.style.display = isVip ? 'block' : 'none';
+    }
+}
