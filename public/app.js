@@ -521,6 +521,27 @@ const statusText = document.getElementById('status');
 const progressBarContainer = document.getElementById('progressBarContainer');
 const progressBar = document.getElementById('progressBar');
 const previewGallery = document.getElementById('previewGallery');
+const step1 = document.getElementById('step1');
+const step2 = document.getElementById('step2');
+const step3 = document.getElementById('step3');
+const goToStep2Btn = document.getElementById('goToStep2Btn');
+const backToStep1Btn = document.getElementById('backToStep1Btn');
+const step1Actions = document.getElementById('step1Actions');
+
+if (goToStep2Btn) {
+    goToStep2Btn.addEventListener('click', () => {
+        step1.style.display = 'none';
+        step2.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+if (backToStep1Btn) {
+    backToStep1Btn.addEventListener('click', () => {
+        step2.style.display = 'none';
+        step1.style.display = 'block';
+    });
+}
+
 const fileCountSpan = document.getElementById('fileCount');
 
 let selectedFiles = []; // Array of objects: { id, file, resultUrl, status }
@@ -592,6 +613,10 @@ function handleFiles(files) {
     fileCountSpan.innerText = selectedFiles.length;
     processBtn.disabled = false;
     statusText.innerText = `已載入 ${selectedFiles.length} 張圖片，點擊按鈕開始處理`;
+    if (step1Actions) {
+        step1Actions.style.display = 'block';
+        if (goToStep2Btn) goToStep2Btn.innerText = `下一步：設定與去除 (${selectedFiles.length} 張)`;
+    }
     statusText.style.color = "var(--primary)";
 
     // reset input value so you can select the same files again
@@ -769,9 +794,18 @@ processBtn.addEventListener('click', async () => {
     if (completedCount > 0) {
         statusText.innerText = `處理完畢！成功: ${completedCount}/${selectedFiles.length}`;
         statusText.style.color = "#2ecc71";
-        if (completedCount > 1) {
-            downloadAllBtn.style.display = 'inline-flex';
-        }
+        // Always show downloadAllBtn when success
+        downloadAllBtn.style.display = 'inline-flex';
+        
+        // Go to Step 3 after a short delay
+        setTimeout(() => {
+            if (step2 && step3) {
+                step2.style.display = 'none';
+                step3.style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }, 1500);
+        
     } else {
         statusText.innerText = `所有圖片處理失敗`;
         statusText.style.color = "#e74c3c";
