@@ -132,8 +132,10 @@ if (supabaseClient) {
     });
 }
 
-function updateAuthUI(user) {
+let currentUserId = null;
+async function updateAuthUI(user) {
     if (user) {
+        currentUserId = user.id;
         loginBtn.style.display = 'none';
         registerBtn.style.display = 'none';
         userInfo.style.display = 'flex';
@@ -141,10 +143,26 @@ function updateAuthUI(user) {
         userEmail.innerText = user.email || user.phone || '使用者';
 
         // Check VIP status
-        isUserVIP = user.user_metadata && user.user_metadata.is_vip === true;
-        document.getElementById('vipPill').style.display = isUserVIP ? 'inline-block' : 'none';
-
+        try {
+            const { data, error } = await supabaseClient
+                .from('profiles')
+                .select('is_vip')
+                .eq('id', user.id)
+                .single();
+                
+            if (currentUserId === user.id) {
+                isUserVIP = (!error && data) ? !!data.is_vip : false;
+                document.getElementById('vipPill').style.display = isUserVIP ? 'inline-block' : 'none';
+            }
+        } catch (err) {
+            console.error('Error fetching VIP status:', err);
+            if (currentUserId === user.id) {
+                isUserVIP = false;
+                document.getElementById('vipPill').style.display = 'none';
+            }
+        }
     } else {
+        currentUserId = null;
         loginBtn.style.display = 'inline-block';
         registerBtn.style.display = 'inline-block';
         userInfo.style.display = 'none';
