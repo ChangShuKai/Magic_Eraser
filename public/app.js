@@ -528,19 +528,109 @@ const goToStep2Btn = document.getElementById('goToStep2Btn');
 const backToStep1Btn = document.getElementById('backToStep1Btn');
 const step1Actions = document.getElementById('step1Actions');
 
+
+function navigateTo(path) {
+    // Check if we are running from file:// protocol
+    if (window.location.protocol === 'file:') {
+        // Fallback for local files: just change hash instead of path
+        window.location.hash = path;
+    } else {
+        history.pushState(null, '', path);
+        handleRoute();
+    }
+}
+
+function handleRoute() {
+    let path = '';
+    if (window.location.protocol === 'file:') {
+        path = window.location.hash.replace('#', '');
+    } else {
+        path = window.location.pathname;
+    }
+    
+    if (!step1 || !step2 || !step3) return;
+
+    step1.style.display = 'none';
+    step2.style.display = 'none';
+    step3.style.display = 'none';
+
+    // --- 廣告與流量統計重新整理 (SPA 換頁) ---
+    // 1. 觸發 Google Analytics 換頁 (如果有安裝 GA4)
+    if (typeof gtag === 'function') {
+        gtag('event', 'page_view', {
+            page_title: document.title,
+            page_location: window.location.href,
+            page_path: path
+        });
+    }
+    
+    // 2. 觸發 Google AdSense 廣告重新載入
+    setTimeout(() => {
+        try {
+            const adElements = document.querySelectorAll('.adsbygoogle');
+            if (adElements.length > 0 && typeof adsbygoogle !== 'undefined') {
+                // 清空已載入的廣告標記，強制 AdSense 重新抓取
+                adElements.forEach(el => {
+                    el.removeAttribute('data-adsbygoogle-status');
+                    el.innerHTML = '';
+                });
+                // 重新為每一個版位推送廣告
+                for (let i = 0; i < adElements.length; i++) {
+                    (adsbygoogle = window.adsbygoogle || []).push({});
+                }
+            }
+        } catch (e) {
+            console.error('AdSense refresh error:', e);
+        }
+    }, 100);
+
+    
+    if (path.endsWith('/process')) {
+        if (selectedFiles.length === 0) {
+            if (window.location.protocol === 'file:') {
+                window.location.hash = '/';
+            } else {
+                history.replaceState(null, '', '/');
+            }
+            step1.style.display = 'block';
+        } else {
+            step2.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    } else if (path.endsWith('/download')) {
+        if (selectedFiles.length === 0) {
+            if (window.location.protocol === 'file:') {
+                window.location.hash = '/';
+            } else {
+                history.replaceState(null, '', '/');
+            }
+            step1.style.display = 'block';
+        } else {
+            step3.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    } else {
+        step1.style.display = 'block';
+    }
+}
+
+handleRoute();
+window.addEventListener('popstate', handleRoute);
+window.addEventListener('hashchange', () => {
+    if (window.location.protocol === 'file:') handleRoute();
+});
+
 if (goToStep2Btn) {
     goToStep2Btn.addEventListener('click', () => {
-        step1.style.display = 'none';
-        step2.style.display = 'block';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        navigateTo('/process');
     });
 }
 if (backToStep1Btn) {
     backToStep1Btn.addEventListener('click', () => {
-        step2.style.display = 'none';
-        step1.style.display = 'block';
+        navigateTo('/');
     });
 }
+
 
 const fileCountSpan = document.getElementById('fileCount');
 
@@ -799,11 +889,7 @@ processBtn.addEventListener('click', async () => {
         
         // Go to Step 3 after a short delay
         setTimeout(() => {
-            if (step2 && step3) {
-                step2.style.display = 'none';
-                step3.style.display = 'block';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+            navigateTo('/download');
         }, 1500);
         
     } else {

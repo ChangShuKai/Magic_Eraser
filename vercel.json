@@ -3,6 +3,10 @@
     {
       "source": "/api-proxy/clean",
       "destination": "https://magic-eraser-34780901980.asia-east1.run.app/api/index"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
