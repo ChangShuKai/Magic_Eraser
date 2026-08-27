@@ -892,6 +892,28 @@
             line-height: 1.4;
         }
         
+        
+        .subscribe-pill-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+            transition: var(--transition);
+        }
+        .subscribe-pill-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        }
+
         /* User Profile Enhancements */
         .user-profile-container {
             display: flex;
@@ -954,6 +976,27 @@
             border-color: #fca5a5;
             background: #fef2f2;
         }
+    
+        .radio-glider {
+            position: absolute;
+            top: 6px;
+            bottom: 6px;
+            left: 6px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: -1;
+            /* Default width if JS hasn't run yet */
+            width: 100px; 
+        }
+        
+        .radio-label:has(input[type="radio"]:checked) {
+            color: var(--text-main);
+            background: transparent;
+            box-shadow: none;
+        }
+
     </style>
 </head>
 
@@ -970,9 +1013,9 @@
             <button class="auth-btn register-btn" id="registerBtn">註冊</button>
             
             <div id="userInfo" class="user-profile-container" style="display: none;">
-                <button type="button" id="subscribeBtn" class="auth-btn vip-btn" style="display: none;">
+                <button type="button" id="subscribeBtn" class="subscribe-pill-btn">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                    升級 SVIP
+                    訂閱方案
                 </button>
                 <div class="user-profile-pill">
                     <div class="user-avatar">
@@ -1201,7 +1244,8 @@
             <div class="settings-group">
                 <div class="setting-section">
                     <span class="setting-label">要去除的顏色目標</span>
-                    <div class="radio-group">
+                    <div class="radio-group" style="position: relative; z-index: 1;">
+                        <div class="radio-glider"></div>
                         <label class="radio-label">
                             <input type="radio" name="color_type" value="red">
                             <span>🔴 紅色筆跡</span>

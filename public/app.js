@@ -200,7 +200,7 @@ async function updateAuthUI(user) {
                     planText.innerText = isUserVIP ? "目前方案: SVIP" : "目前方案: 免費方案";
                 }
                 if (subBtn) {
-                    subBtn.style.display = isUserVIP ? 'none' : 'inline-flex';
+                    subBtn.style.display = 'inline-flex';
                 }
                 if (limitText) {
                     limitText.innerText = isUserVIP ? "SVIP 無限制上傳張數" : "一次最多支援上傳 3 張圖片";
@@ -215,7 +215,7 @@ async function updateAuthUI(user) {
                 const subBtn = document.getElementById('subscribeBtn');
                 const limitText = document.getElementById('limitText');
                 if (planText) planText.innerText = "目前方案: 免費方案";
-                if (subBtn) subBtn.style.display = isUserVIP ? 'none' : 'inline-flex';
+                if (subBtn) subBtn.style.display = 'inline-flex';
                 if (limitText) limitText.innerText = "一次最多支援上傳 3 張圖片";
             }
         }
@@ -807,3 +807,28 @@ document.getElementById('cb_enhance').addEventListener('click', (e) => {
         alert("🌓 增強黑白對比度 是 SVIP 專屬功能！請升級 SVIP 後使用。");
     }
 });
+
+
+// Radio group glider animation
+function updateRadioGlider() {
+    const checked = document.querySelector('input[name="color_type"]:checked');
+    const glider = document.querySelector('.radio-glider');
+    if (checked && glider) {
+        const label = checked.closest('.radio-label');
+        if (label) {
+            glider.style.width = `${label.offsetWidth}px`;
+            // parent has 6px padding, so offsetLeft is relative to parent. 
+            // We just set transform to the left position.
+            // Wait, offsetLeft of label inside radio-group includes the padding of radio-group?
+            // Actually, offsetLeft is relative to the offsetParent (which is radio-group since it has position: relative).
+            // Since glider has left: 6px, and the first label has offsetLeft: 6px, we need to subtract 6px.
+            glider.style.transform = `translateX(${label.offsetLeft - 6}px)`;
+        }
+    }
+}
+document.querySelectorAll('input[name="color_type"]').forEach(radio => {
+    radio.addEventListener('change', updateRadioGlider);
+});
+window.addEventListener('resize', updateRadioGlider);
+// Run once on load
+setTimeout(updateRadioGlider, 100);
