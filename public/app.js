@@ -527,7 +527,7 @@ const step3 = document.getElementById('step3');
 const goToStep2Btn = document.getElementById('goToStep2Btn');
 const backToStep1Btn = document.getElementById('backToStep1Btn');
 const step1Actions = document.getElementById('step1Actions');
-
+const restartBtn = document.getElementById('restartBtn');
 
 function navigateTo(path) {
     // Check if we are running from file:// protocol
@@ -627,6 +627,29 @@ if (goToStep2Btn) {
 }
 if (backToStep1Btn) {
     backToStep1Btn.addEventListener('click', () => {
+        navigateTo('/');
+    });
+}
+if (restartBtn) {
+    restartBtn.addEventListener('click', () => {
+        selectedFiles = [];
+        previewGallery.innerHTML = '';
+        if (fileInput) fileInput.value = '';
+        if (fileCountSpan) fileCountSpan.innerText = '0';
+        if (processBtn) processBtn.disabled = true;
+        if (statusText) {
+            statusText.innerText = '等待上傳圖片...';
+            statusText.style.color = 'var(--text-main)';
+        }
+        if (step1Actions) step1Actions.style.display = 'none';
+        if (downloadAllBtn) downloadAllBtn.style.display = 'none';
+        if (progressBarContainer) {
+            progressBarContainer.style.display = 'none';
+            if (progressBar) {
+                progressBar.style.width = '0%';
+                progressBar.classList.remove('progress-indeterminate');
+            }
+        }
         navigateTo('/');
     });
 }
