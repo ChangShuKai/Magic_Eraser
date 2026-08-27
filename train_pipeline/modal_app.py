@@ -121,7 +121,7 @@ app = modal.App("exam-cleaner")
 
 image = (
     modal.Image.debian_slim()
-    .pip_install("torch", "torchvision", "pillow", "fastapi[standard]", "opencv-python-headless", "numpy", "python-multipart")
+    .pip_install("torch", "torchvision", "pillow", "fastapi[standard]", "opencv-python-headless", "numpy", "python-multipart", "httpx")
 )
 if latest_pth:
     image = image.add_local_file(latest_pth, remote_path="/root/model.pth")
@@ -166,8 +166,61 @@ class CleanerService:
         image: UploadFile = File(...),
         color_type: str = Form("both"),
         fill_method: str = Form("white"),
-        enhance: str = Form("false")
+        enhance: str = Form("false"),
+        authorization: str = __import__('fastapi').Header(None)
     ):
+        if not authorization or not authorization.startswith("Bearer "):
+            return Response(content=b'{"error": "Unauthorized. Please log in."}', status_code=401, media_type="application/json")
+            
+        token = authorization.split(" ")[1]
+        
+        # 透過 Supabase API 驗證 JWT
+        import httpx
+        SUPABASE_URL = "https://qrjkjdlwhmihxkqnrxzu.supabase.co"
+        SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyamtqZGx3aG1paHhrcW5yeHp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDYzMjYsImV4cCI6MjEwMzEyMjMyNn0.Z4VAfv6SIUvibLv5h02Arp9gq3jeCPWwBc_S1zuNUDA"
+        
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{SUPABASE_URL}/auth/v1/user",
+                headers={"Authorization": f"Bearer {token}", "apikey": SUPABASE_ANON_KEY}
+            )
+            if resp.status_code != 200:
+                return Response(content=b'{"error": "Invalid token or session expired."}', status_code=401, media_type="application/json")
+                
+            user_data = resp.json()
+            user_id = user_data.get("id")
+            if not user_id:
+                return Response(content=b'{"error": "Invalid user data."}', status_code=401, media_type="application/json")
+                
+            # 檢查 VIP 狀態
+            profile_resp = await client.get(
+                f"{SUPABASE_URL}/rest/v1/profiles?select=is_vip&id=eq.{user_id}",
+                headers={"Authorization": f"Bearer {token}", "apikey": SUPABASE_ANON_KEY}
+            )
+            is_vip = False
+            if profile_resp.status_code == 200:
+                profiles = profile_resp.json()
+                if len(profiles) > 0:
+                    is_vip = profiles[0].get("is_vip", False)
+                    
+            # 實作頻率限制 (非 VIP 會員每小時 30 張)
+            if not is_vip:
+                import time
+                current_hour = int(time.time() // 3600)
+                usage_key = f"{user_id}_{current_hour}"
+                
+                # 使用 Modal 的全域分散式字典紀錄次數
+                rate_limit_dict = modal.Dict.from_name("exam-cleaner-usage", create_if_missing=True)
+                try:
+                    count = rate_limit_dict.get(usage_key, 0)
+                except Exception:
+                    count = 0
+                    
+                if count >= 30:
+                    return Response(content=b'{"error": "Rate limit exceeded. Free users are limited to 30 images per hour. Please upgrade to SVIP for unlimited access."}', status_code=429, media_type="application/json")
+                    
+                rate_limit_dict[usage_key] = count + 1
+
         img_bytes = await image.read()
         
         # 如果是純 HSV 去除顏色 (fill_method == 'white')
@@ -186,6 +239,16 @@ class CleanerService:
             nparr = np.frombuffer(img_bytes, np.uint8)
             img_cv = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             
+            if img_cv is None:
+                return Response(content=b'{"error": "Invalid image format."}', status_code=400, media_type="application/json")
+                
+            # 防禦解壓縮炸彈 / OOM 攻擊 (限制最大邊長為 2048)
+            max_dim = 2048
+            h, w = img_cv.shape[:2]
+            if h > max_dim or w > max_dim:
+                scale = max_dim / max(h, w)
+                img_cv = cv2.resize(img_cv, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+            
             # 純 HSV 處理
             img_cv = whiten_background(img_cv)
             img_cv = process_image(img_cv, color_type=color_type, tolerance=50, fill_method='white')
@@ -196,9 +259,17 @@ class CleanerService:
             return Response(content=im_buf_arr.tobytes(), media_type="image/jpeg")
 
         # 否則使用 AI 智慧修補 (inpaint)
-        # 讀取前端上傳的圖片 (轉為 L 灰階，因為模型吃單通道)
-        img = Image.open(io.BytesIO(img_bytes)).convert("L")
-        
+        try:
+            # 讀取前端上傳的圖片 (轉為 L 灰階)
+            img = Image.open(io.BytesIO(img_bytes)).convert("L")
+        except Exception:
+            return Response(content=b'{"error": "Invalid image format."}', status_code=400, media_type="application/json")
+            
+        # 防禦解壓縮炸彈 / OOM 攻擊 (限制最大邊長為 2048)
+        max_dim = 2048
+        if img.width > max_dim or img.height > max_dim:
+            img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+            
         # 影像前處理
         transform = T.ToTensor()
         input_tensor = transform(img).unsqueeze(0).to(self.device)

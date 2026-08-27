@@ -548,11 +548,20 @@ dropZone.addEventListener('drop', (e) => {
 });
 
 function handleFiles(files) {
-    const validFiles = Array.from(files).filter(f => f.type.match('image.*'));
+    let validFiles = Array.from(files).filter(f => f.type.match('image.*'));
 
     if (validFiles.length === 0) {
         alert("請上傳圖片檔案 (JPG, PNG)");
         return;
+    }
+    
+    // 限制單張圖片大小最大為 10MB
+    const MAX_SIZE_MB = 10;
+    const oversizedFiles = validFiles.filter(f => f.size > MAX_SIZE_MB * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+        alert(`部分圖片超過 ${MAX_SIZE_MB}MB 大小限制，已被忽略。請先壓縮圖片再上傳。`);
+        validFiles = validFiles.filter(f => f.size <= MAX_SIZE_MB * 1024 * 1024);
+        if (validFiles.length === 0) return;
     }
 
     const limit = isUserVIP ? Infinity : MAX_FILES;
@@ -640,6 +649,22 @@ function createPreviewCard(fileObj) {
 processBtn.addEventListener('click', async () => {
     if (selectedFiles.length === 0) return;
 
+    if (!supabaseClient) {
+        alert("系統發生錯誤，無法連接驗證伺服器。");
+        return;
+    }
+
+    // 強制登入驗證
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) {
+        alert("請先登入，才能使用去手寫功能！");
+        // 觸發顯示 Auth Modal (假設有 openAuthModal() 或類似機制，先直接打開 Modal)
+        const authModal = document.getElementById('authModal');
+        if (authModal) authModal.style.display = 'block';
+        return;
+    }
+    const token = session.access_token;
+
     processBtn.disabled = true;
     fileInput.disabled = true;
     downloadAllBtn.style.display = 'none';
@@ -680,6 +705,9 @@ processBtn.addEventListener('click', async () => {
             
             const response = await fetch(API_URL, {
                 method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
                 body: formData
             });
 
