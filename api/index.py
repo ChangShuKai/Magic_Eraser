@@ -65,10 +65,17 @@ def process():
         return jsonify({'error': 'No image uploaded'}), 400
         
     file = request.files['image']
+    from image_processor import process_image, enhance_text, whiten_background, perspective_correction
+
     color_type = request.form.get('color_type', 'both')
     fill_method = request.form.get('fill_method', 'white')
     enhance_str = request.form.get('enhance', 'false').lower()
     enhance = (enhance_str == 'true')
+    
+    deskew_str = request.form.get('deskew', 'true').lower()
+    deskew = (deskew_str == 'true')
+    whiten_str = request.form.get('whiten', 'true').lower()
+    whiten = (whiten_str == 'true')
     
     # 簡單的參數驗證
     if color_type not in ['red', 'blue', 'both']:
@@ -92,13 +99,18 @@ def process():
         img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
 
     try:
-        # 1. 套用背景白化 (與 main.py 邏輯一致)
-        img = whiten_background(img)
+        # 1. 自動歪斜修正
+        if deskew:
+            img = perspective_correction(img)
+            
+        # 2. 套用背景白化
+        if whiten:
+            img = whiten_background(img)
         
-        # 2. 執行影像處理去除筆跡 (與 main.py 一致，只跑 1 次以提升效能)
+        # 3. 執行影像處理去除筆跡 (與 main.py 一致，只跑 1 次以提升效能)
         img = process_image(img, color_type=color_type, tolerance=50, fill_method=fill_method)
             
-        # 3. 根據選項決定是否增強對比
+        # 4. 根據選項決定是否增強對比
         if enhance:
             img = enhance_text(img)
             

@@ -818,6 +818,8 @@ processBtn.addEventListener('click', async () => {
     const colorType = document.querySelector('input[name="color_type"]:checked').value;
     const useInpaint = document.getElementById('cb_inpaint').checked;
     const enhance = document.getElementById('cb_enhance').checked;
+    const deskew = document.getElementById('cb_deskew') ? document.getElementById('cb_deskew').checked : true;
+    const whiten = document.getElementById('cb_whiten') ? document.getElementById('cb_whiten').checked : true;
 
     let completedCount = 0;
 
@@ -871,6 +873,8 @@ processBtn.addEventListener('click', async () => {
         formData.append('color_type', colorType);
         formData.append('fill_method', useInpaint ? 'inpaint' : 'white');
         formData.append('enhance', enhance ? 'true' : 'false');
+        formData.append('deskew', deskew ? 'true' : 'false');
+        formData.append('whiten', whiten ? 'true' : 'false');
 
         try {
             // 透過 Vercel rewrite 或 Flask proxy 轉發，隱藏真實的 Modal API 網址
