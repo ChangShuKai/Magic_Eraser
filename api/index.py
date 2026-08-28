@@ -11,37 +11,38 @@ from image_processor import process_image, enhance_text, whiten_background
 
 import glob
 
-# --- 新增: AI 模型全域變數 ---
-AI_MODEL = None
-AI_DEVICE = "cpu"
+# --- 新增: ONNX 模型全域變數 ---
+ORT_SESSION = None
 
-def load_ai_model():
-    global AI_MODEL
-    if AI_MODEL is not None:
-        return AI_MODEL
+def load_onnx_session():
+    global ORT_SESSION
+    if ORT_SESSION is not None:
+        return ORT_SESSION
     try:
-        import torch
-        # 從 train_pipeline.model 匯入模型架構
-        from train_pipeline.model import MobileNetV3UNet
-        model = MobileNetV3UNet()
+        import onnxruntime as ort
         
-        # 尋找最新的權重檔
-        checkpoints_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "train_pipeline", "checkpoints")
-        pth_files = glob.glob(os.path.join(checkpoints_dir, "model_epoch_*.pth"))
-        if pth_files:
-            def get_epoch_num(f):
-                try: return int(os.path.basename(f).replace("model_epoch_", "").replace(".pth", ""))
-                except: return -1
-            latest_pth = max(pth_files, key=get_epoch_num)
-            model.load_state_dict(torch.load(latest_pth, map_location=AI_DEVICE))
-            model.to(AI_DEVICE).eval()
-            AI_MODEL = model
-            print(f"Loaded AI Model: {latest_pth}")
+        # 尋找 quantized onnx 模型 (假設放在 train_pipeline/checkpoints/ 或根目錄)
+        possible_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "train_pipeline", "checkpoints", "model_quantized.onnx"),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "model_quantized.onnx"),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "web_app", "model_quantized.onnx")
+        ]
+        
+        model_path = None
+        for p in possible_paths:
+            if os.path.exists(p):
+                model_path = p
+                break
+                
+        if model_path:
+            # 啟動 ONNX Runtime 推論引擎
+            ORT_SESSION = ort.InferenceSession(model_path, providers=['CPUExecutionProvider'])
+            print(f"Loaded ONNX Model: {model_path}")
         else:
-            print("No checkpoint found.")
+            print("No model_quantized.onnx found.")
     except Exception as e:
-        print(f"Failed to load AI model: {e}")
-    return AI_MODEL
+        print(f"Failed to load ONNX model: {e}")
+    return ORT_SESSION
 # ------------------------------
 
 app = Flask(__name__)
@@ -161,47 +162,56 @@ def process():
             return send_file(byte_io, mimetype='image/jpeg')
             
         else:
-            # fill_method == 'inpaint' -> 使用 AI 模型推論 (支援 GCP Cloud Run CPU)
-            model = load_ai_model()
-            if model is None:
-                return jsonify({'error': 'AI model is not available. Please check server logs.'}), 500
+            # fill_method == 'inpaint' -> 使用 ONNX 模型推論 (支援 GCP Cloud Run CPU，極速版)
+            session = load_onnx_session()
+            if session is None:
+                return jsonify({'error': 'ONNX model is not available. Please check server logs.'}), 500
                 
-            from PIL import Image
-            import torchvision.transforms as T
-            import torch
+            # 影像前處理 (不再需要 PIL 或 PyTorch)
+            # 1. 轉灰階
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             
-            # 將 OpenCV 的 BGR 轉為 PIL 的 RGB 然後再轉灰階 (模型吃單通道)
-            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            pil_img = Image.fromarray(img_rgb).convert("L")
+            # 2. 轉型態並正規化到 [0, 1]
+            input_np = gray.astype(np.float32) / 255.0
             
-            # AI 前處理
-            transform = T.ToTensor()
-            input_tensor = transform(pil_img).unsqueeze(0).to(AI_DEVICE)
-            
-            # 動態補邊 (Padding) 讓長寬都是 32 的倍數，避免 UNet 維度不匹配
-            _, _, h_t, w_t = input_tensor.size()
+            # 3. 動態補邊 (Padding) 讓長寬都是 32 的倍數
+            h_t, w_t = input_np.shape
             pad_h = (32 - (h_t % 32)) % 32
             pad_w = (32 - (w_t % 32)) % 32
-            if pad_h > 0 or pad_w > 0:
-                import torch.nn.functional as F
-                input_tensor = F.pad(input_tensor, (0, pad_w, 0, pad_h), mode='reflect')
-                
-            # 推論 (無梯度的 inference mode 提升效能)
-            with torch.inference_mode():
-                output_tensor = model(input_tensor)
-                
-            # 切割回原始大小
-            if pad_h > 0 or pad_w > 0:
-                output_tensor = output_tensor[:, :, :h_t, :w_t]
-                
-            # 轉回影像
-            output_tensor = output_tensor.squeeze(0).clamp(0, 1).cpu()
-            out_img = T.ToPILImage()(output_tensor).convert("RGB")
             
-            buffer = io.BytesIO()
-            out_img.save(buffer, format="JPEG", quality=90)
-            buffer.seek(0)
-            return send_file(buffer, mimetype='image/jpeg')
+            if pad_h > 0 or pad_w > 0:
+                # numpy 的 padding 格式: ((top, bottom), (left, right))
+                input_np = np.pad(input_np, ((0, pad_h), (0, pad_w)), mode='reflect')
+                
+            # 4. 增加 Batch (1) 和 Channel (1) 維度: [1, 1, H, W]
+            input_np = np.expand_dims(input_np, axis=(0, 1))
+            
+            # 推論 (高速 ONNX 引擎)
+            input_name = session.get_inputs()[0].name
+            ort_outs = session.run(None, {input_name: input_np})
+            output_np = ort_outs[0]
+            
+            # 後處理
+            # 1. 切割回原始大小並移除多餘維度
+            if pad_h > 0 or pad_w > 0:
+                output_np = output_np[:, :, :h_t, :w_t]
+            output_np = np.squeeze(output_np)
+            
+            # 2. 限制在 [0, 1] 範圍，並轉回 uint8 [0, 255]
+            output_np = np.clip(output_np, 0, 1)
+            output_img = (output_np * 255.0).astype(np.uint8)
+            
+            # 3. 轉回 BGR 以符合輸出格式要求
+            output_bgr = cv2.cvtColor(output_img, cv2.COLOR_GRAY2BGR)
+            
+            # 編碼回 JPEG 格式
+            is_success, im_buf_arr = cv2.imencode(".jpg", output_bgr, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            if not is_success:
+                return jsonify({'error': 'Failed to encode processed image'}), 500
+                
+            byte_io = io.BytesIO(im_buf_arr.tobytes())
+            byte_io.seek(0)
+            return send_file(byte_io, mimetype='image/jpeg')
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500

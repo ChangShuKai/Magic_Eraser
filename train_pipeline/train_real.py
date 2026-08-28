@@ -108,13 +108,13 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=1e-4) 
     scheduler = CosineAnnealingLR(optimizer, T_max=10, eta_min=1e-5)
     
-    start_epoch = 55
+    start_epoch = 121
     ckpt_path = f"checkpoints/model_epoch_{start_epoch}.pth"
     if os.path.exists(ckpt_path):
         model.load_state_dict(torch.load(ckpt_path, map_location=device))
         print(f"Resuming for ALIGNED REAL DATA from {ckpt_path} (Epoch {start_epoch})")
     
-    target_epochs = start_epoch + 1000 # 無限期微調
+    target_epochs = start_epoch + 5 # 依照要求跑 5 輪
     
     for epoch in range(start_epoch, target_epochs):
         model.train()

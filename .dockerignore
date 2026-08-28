@@ -14,5 +14,3 @@ env/
 .venv/
 .env
 *.spec
-train_pipeline/
-

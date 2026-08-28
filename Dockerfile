@@ -6,11 +6,9 @@ WORKDIR /app
 # 複製 requirements.txt
 COPY requirements.txt .
 
-# 先安裝 CPU 版本的 PyTorch 與 torchvision (加入 --no-cache-dir 避免 Cloud Build 記憶體不足崩潰)
-RUN pip install --no-cache-dir torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
-
-# 安裝 Python 依賴，包含 gunicorn 作為正式環境的 WSGI 伺服器 (並補上 pillow)
-RUN pip install --no-cache-dir -r requirements.txt gunicorn pillow
+# 安裝 Python 依賴，包含 gunicorn 作為正式環境的 WSGI 伺服器
+# 同時安裝 onnxruntime 作為高速 CPU 引擎 (取代笨重的 torch)
+RUN pip install --no-cache-dir -r requirements.txt gunicorn onnxruntime
 
 # 複製專案原始碼
 COPY . .

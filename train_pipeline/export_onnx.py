@@ -58,7 +58,7 @@ def export_to_onnx(pytorch_model_path, onnx_model_path, quantized_model_path):
 
 if __name__ == "__main__":
     export_to_onnx(
-        pytorch_model_path="checkpoints/model_epoch_10.pth",
+        pytorch_model_path="checkpoints/model_epoch_126.pth",
         onnx_model_path="../web_app/model_fp32.onnx",
         quantized_model_path="../web_app/model_quantized.onnx"
     )
