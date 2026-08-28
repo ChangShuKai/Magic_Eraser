@@ -9,6 +9,41 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from image_processor import process_image, enhance_text, whiten_background
 
+import glob
+
+# --- 新增: AI 模型全域變數 ---
+AI_MODEL = None
+AI_DEVICE = "cpu"
+
+def load_ai_model():
+    global AI_MODEL
+    if AI_MODEL is not None:
+        return AI_MODEL
+    try:
+        import torch
+        # 從 train_pipeline.model 匯入模型架構
+        from train_pipeline.model import MobileNetV3UNet
+        model = MobileNetV3UNet()
+        
+        # 尋找最新的權重檔
+        checkpoints_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "train_pipeline", "checkpoints")
+        pth_files = glob.glob(os.path.join(checkpoints_dir, "model_epoch_*.pth"))
+        if pth_files:
+            def get_epoch_num(f):
+                try: return int(os.path.basename(f).replace("model_epoch_", "").replace(".pth", ""))
+                except: return -1
+            latest_pth = max(pth_files, key=get_epoch_num)
+            model.load_state_dict(torch.load(latest_pth, map_location=AI_DEVICE))
+            model.to(AI_DEVICE).eval()
+            AI_MODEL = model
+            print(f"Loaded AI Model: {latest_pth}")
+        else:
+            print("No checkpoint found.")
+    except Exception as e:
+        print(f"Failed to load AI model: {e}")
+    return AI_MODEL
+# ------------------------------
+
 app = Flask(__name__)
 
 @app.route('/api/index', methods=['POST'])
@@ -99,30 +134,74 @@ def process():
         img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
 
     try:
-        # 1. 自動歪斜修正
-        if deskew:
-            img = perspective_correction(img)
+        if fill_method == 'white':
+            # 1. 自動歪斜修正
+            if deskew:
+                img = perspective_correction(img)
+                
+            # 2. 套用背景白化
+            if whiten:
+                img = whiten_background(img)
             
-        # 2. 套用背景白化
-        if whiten:
-            img = whiten_background(img)
-        
-        # 3. 執行影像處理去除筆跡 (與 main.py 一致，只跑 1 次以提升效能)
-        img = process_image(img, color_type=color_type, tolerance=50, fill_method=fill_method)
+            # 3. 執行影像處理去除筆跡 (傳統 OpenCV 演算法)
+            img = process_image(img, color_type=color_type, tolerance=50, fill_method='white')
+                
+            # 4. 根據選項決定是否增強對比
+            if enhance:
+                img = enhance_text(img)
+                
+            # 5. 編碼回 JPEG 格式
+            is_success, im_buf_arr = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            if not is_success:
+                return jsonify({'error': 'Failed to encode processed image'}), 500
+                
+            # 6. 回傳圖片
+            byte_io = io.BytesIO(im_buf_arr.tobytes())
+            byte_io.seek(0)
+            return send_file(byte_io, mimetype='image/jpeg')
             
-        # 4. 根據選項決定是否增強對比
-        if enhance:
-            img = enhance_text(img)
+        else:
+            # fill_method == 'inpaint' -> 使用 AI 模型推論 (支援 GCP Cloud Run CPU)
+            model = load_ai_model()
+            if model is None:
+                return jsonify({'error': 'AI model is not available. Please check server logs.'}), 500
+                
+            from PIL import Image
+            import torchvision.transforms as T
+            import torch
             
-        # 4. 編碼回 JPEG 格式 (大幅減少檔案大小，加速網路傳輸與伺服器處理時間)
-        is_success, im_buf_arr = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 90])
-        if not is_success:
-            return jsonify({'error': 'Failed to encode processed image'}), 500
+            # 將 OpenCV 的 BGR 轉為 PIL 的 RGB 然後再轉灰階 (模型吃單通道)
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            pil_img = Image.fromarray(img_rgb).convert("L")
             
-        # 5. 回傳圖片
-        byte_io = io.BytesIO(im_buf_arr.tobytes())
-        byte_io.seek(0)
-        return send_file(byte_io, mimetype='image/jpeg')
-        
+            # AI 前處理
+            transform = T.ToTensor()
+            input_tensor = transform(pil_img).unsqueeze(0).to(AI_DEVICE)
+            
+            # 動態補邊 (Padding) 讓長寬都是 32 的倍數，避免 UNet 維度不匹配
+            _, _, h_t, w_t = input_tensor.size()
+            pad_h = (32 - (h_t % 32)) % 32
+            pad_w = (32 - (w_t % 32)) % 32
+            if pad_h > 0 or pad_w > 0:
+                import torch.nn.functional as F
+                input_tensor = F.pad(input_tensor, (0, pad_w, 0, pad_h), mode='reflect')
+                
+            # 推論 (無梯度的 inference mode 提升效能)
+            with torch.inference_mode():
+                output_tensor = model(input_tensor)
+                
+            # 切割回原始大小
+            if pad_h > 0 or pad_w > 0:
+                output_tensor = output_tensor[:, :, :h_t, :w_t]
+                
+            # 轉回影像
+            output_tensor = output_tensor.squeeze(0).clamp(0, 1).cpu()
+            out_img = T.ToPILImage()(output_tensor).convert("RGB")
+            
+            buffer = io.BytesIO()
+            out_img.save(buffer, format="JPEG", quality=90)
+            buffer.seek(0)
+            return send_file(buffer, mimetype='image/jpeg')
+            
     except Exception as e:
         return jsonify({'error': str(e)}), 500

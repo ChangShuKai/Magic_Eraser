@@ -54,13 +54,26 @@ class RealExamDataset(Dataset):
         inp_img = self.inputs[img_idx]
         tgt_img = self.targets[img_idx]
         
-        # 隨機裁切 512x512
+        # 智慧裁切 (Attention-based Sampling)：只裁切有手寫筆跡的地方
         w, h = inp_img.size
-        x = random.randint(0, max(0, w - self.patch_size))
-        y = random.randint(0, max(0, h - self.patch_size))
+        # 最多嘗試 10 次，尋找有差異(有手寫)的區塊
+        for _ in range(10):
+            x = random.randint(0, max(0, w - self.patch_size))
+            y = random.randint(0, max(0, h - self.patch_size))
+            
+            # 快速檢查這個區域有沒有手寫字 (比較 input 和 target)
+            inp_crop = inp_img.crop((x, y, x + self.patch_size, y + self.patch_size))
+            tgt_crop = tgt_img.crop((x, y, x + self.patch_size, y + self.patch_size))
+            
+            # 計算差異
+            import numpy as np
+            diff = np.abs(np.array(inp_crop, dtype=np.int16) - np.array(tgt_crop, dtype=np.int16))
+            if np.mean(diff) > 2.0: # 如果平均差異大於 2 (代表有筆跡)，就跳出迴圈使用這個裁切
+                break
         
-        inp_patch = inp_img.crop((x, y, x + self.patch_size, y + self.patch_size))
-        tgt_patch = tgt_img.crop((x, y, x + self.patch_size, y + self.patch_size))
+        inp_patch = inp_crop
+        tgt_patch = tgt_crop
+        
         
         # 隨機旋轉
         angle = random.choice([0, 90, 180, 270])
@@ -95,13 +108,13 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=1e-4) 
     scheduler = CosineAnnealingLR(optimizer, T_max=10, eta_min=1e-5)
     
-    start_epoch = 40
+    start_epoch = 55
     ckpt_path = f"checkpoints/model_epoch_{start_epoch}.pth"
     if os.path.exists(ckpt_path):
         model.load_state_dict(torch.load(ckpt_path, map_location=device))
         print(f"Resuming for ALIGNED REAL DATA from {ckpt_path} (Epoch {start_epoch})")
     
-    target_epochs = start_epoch + 15 # 微調 15 輪
+    target_epochs = start_epoch + 1000 # 無限期微調
     
     for epoch in range(start_epoch, target_epochs):
         model.train()

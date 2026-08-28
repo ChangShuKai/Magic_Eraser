@@ -692,8 +692,8 @@ function handleFiles(files) {
         return;
     }
     
-    // 限制單張圖片大小最大為 10MB
-    const MAX_SIZE_MB = 10;
+    // 限制單張圖片大小最大為 30MB
+    const MAX_SIZE_MB = 30;
     const oversizedFiles = validFiles.filter(f => f.size > MAX_SIZE_MB * 1024 * 1024);
     if (oversizedFiles.length > 0) {
         alert(`部分圖片超過 ${MAX_SIZE_MB}MB 大小限制，已被忽略。請先壓縮圖片再上傳。`);

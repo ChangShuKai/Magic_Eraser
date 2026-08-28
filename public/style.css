@@ -496,7 +496,7 @@ html { background-color: var(--bg-color); }
 
         .setting-section {
             flex: 1;
-            min-width: 250px;
+            min-width: 300px;
         }
 
         .setting-label {
@@ -533,6 +533,7 @@ html { background-color: var(--bg-color); }
             font-weight: 600;
             color: #6b7280;
             min-width: 100px;
+            white-space: nowrap;
         }
 
         .radio-label input[type="radio"] {
@@ -579,6 +580,10 @@ html { background-color: var(--bg-color); }
 
         .toggle-label input[type="checkbox"] {
             display: none;
+        }
+
+        .toggle-text {
+            white-space: nowrap;
         }
 
         .toggle-switch {

@@ -6,8 +6,11 @@ WORKDIR /app
 # 複製 requirements.txt
 COPY requirements.txt .
 
-# 安裝 Python 依賴，包含 gunicorn 作為正式環境的 WSGI 伺服器
-RUN pip install --no-cache-dir -r requirements.txt gunicorn
+# 先安裝 CPU 版本的 PyTorch 與 torchvision (避免 CUDA 讓 Image 暴增)
+RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# 安裝 Python 依賴，包含 gunicorn 作為正式環境的 WSGI 伺服器 (並補上 pillow)
+RUN pip install --no-cache-dir -r requirements.txt gunicorn pillow
 
 # 複製專案原始碼
 COPY . .
