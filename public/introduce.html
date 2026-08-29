@@ -13,11 +13,12 @@
     
     <style>
         body {
-            background-color: #000;
-            color: #fff;
+            background-color: #ffffff;
+            color: #18181b; /* zinc-900 */
             margin: 0;
             overflow-x: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            scroll-behavior: smooth;
         }
 
         /* Sparkles */
@@ -30,20 +31,6 @@
             z-index: 10;
         }
 
-        /* 3D Card */
-        .perspective {
-            perspective: 1000px;
-        }
-        .card-body {
-            transform-style: preserve-3d;
-            will-change: transform;
-        }
-        .card-item {
-            transform-style: preserve-3d;
-            will-change: transform;
-            transition: transform 0.2s ease-out;
-        }
-        
         /* Wobble */
         .wobble-container {
             will-change: transform;
@@ -64,16 +51,35 @@
         .gradient-line-sky {
             background: linear-gradient(90deg, transparent, rgba(14, 165, 233, 1) 50%, transparent);
         }
+        
+        /* Carousel Scrollbar Hide */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Apple Style Typography */
+        .apple-title {
+            letter-spacing: -0.02em;
+        }
+
+        /* Snap scrolling for full sections */
+        .snap-section {
+            scroll-snap-align: start;
+        }
     </style>
 </head>
-<body class="bg-black text-white antialiased pb-20">
+<body class="bg-white text-zinc-900 antialiased selection:bg-blue-200">
 
-    <!-- Header / Sparkles (Magic Eraser Klareo) -->
-    <div class="h-[30rem] w-full bg-black flex flex-col items-center justify-center overflow-hidden rounded-md relative mb-20">
-        <h1 class="md:text-7xl text-4xl lg:text-9xl font-bold text-center text-white relative z-20">
+    <!-- Hero / Sparkles Section (Full Screen) -->
+    <div class="h-screen w-full bg-white flex flex-col items-center justify-center overflow-hidden relative snap-section">
+        <h1 class="apple-title md:text-7xl text-4xl lg:text-9xl font-bold text-center text-zinc-900 relative z-20">
             Magic Eraser Klareo
         </h1>
-        <div class="w-full max-w-[40rem] h-40 relative mt-4">
+        <div class="w-full max-w-[40rem] h-40 relative mt-6">
             <!-- Gradients -->
             <div class="absolute inset-x-10 md:inset-x-20 top-0 gradient-line h-[2px] w-3/4 blur-sm mx-auto"></div>
             <div class="absolute inset-x-10 md:inset-x-20 top-0 gradient-line h-px w-3/4 mx-auto"></div>
@@ -83,82 +89,170 @@
             <!-- Core component (particles) -->
             <div id="tsparticles" class="w-full h-full relative z-10"></div>
 
-            <!-- Radial Gradient to prevent sharp edges -->
-            <div class="absolute inset-0 w-full h-full bg-black z-20 pointer-events-none" style="mask-image: radial-gradient(350px 200px at top, transparent 20%, white); -webkit-mask-image: radial-gradient(350px 200px at top, transparent 20%, white);"></div>
+            <!-- Radial Gradient to prevent sharp edges - changed to bg-white to match theme -->
+            <div class="absolute inset-0 w-full h-full bg-white z-20 pointer-events-none" style="mask-image: radial-gradient(350px 200px at top, transparent 20%, white); -webkit-mask-image: radial-gradient(350px 200px at top, transparent 20%, white);"></div>
+        </div>
+        
+        <!-- Scroll indicator -->
+        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce text-zinc-400">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
         </div>
     </div>
 
-    <!-- Wobble Card Demo (網站特色) -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto w-full px-4 mb-32">
-        <!-- Card 1 -->
-        <div class="wobble-container col-span-1 lg:col-span-2 bg-pink-900 min-h-[400px] lg:min-h-[300px] rounded-2xl relative overflow-hidden flex flex-col justify-center p-8 shadow-2xl transition-all duration-300">
-            <div class="relative z-10 max-w-md">
-                <h2 class="text-left text-balance text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight text-white">
-                    一鍵去除雜亂背景，凸顯主體
-                </h2>
-                <p class="mt-4 text-left text-base/6 text-pink-100">
-                    Magic Eraser Klareo 採用先進 AI 演算法，能精準識別並消除圖片中不需要的元素，讓您的照片更乾淨、更具吸引力。
-                </p>
+    <!-- Interstitial Text Flip 1 -->
+    <div class="min-h-[50vh] flex items-center justify-center bg-white px-4 snap-section">
+        <h1 class="apple-title relative max-w-4xl text-center text-4xl leading-tight font-bold tracking-tight text-zinc-800 md:text-6xl lg:text-7xl">
+            <div class="inline-block">
+                Make your images look 10x 
+                <span class="text-flip-container inline-flex flex-col h-[1.1em] overflow-hidden align-bottom relative ml-2 text-blue-600 bg-blue-50/50 px-2 rounded-xl">
+                    <span class="text-flip-inner transition-transform duration-700 ease-in-out" style="transform: translateY(0%);">
+                        <span class="block h-[1.1em] leading-tight">better</span>
+                        <span class="block h-[1.1em] leading-tight">modern</span>
+                        <span class="block h-[1.1em] leading-tight">beautiful</span>
+                        <span class="block h-[1.1em] leading-tight">awesome</span>
+                    </span>
+                </span>
             </div>
-            <!-- Decorative gradient -->
-            <div class="absolute -right-20 -bottom-20 w-64 h-64 bg-pink-500 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-        </div>
+        </h1>
+    </div>
 
-        <!-- Card 2 -->
-        <div class="wobble-container col-span-1 min-h-[300px] bg-neutral-800 rounded-2xl relative overflow-hidden flex flex-col justify-center p-8 shadow-2xl transition-all duration-300">
-            <div class="relative z-10">
-                <h2 class="max-w-80 text-left text-balance text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight text-white">
-                    保護隱私<br/>安全無虞
-                </h2>
-                <p class="mt-4 max-w-[26rem] text-left text-base/6 text-neutral-300">
-                    無論是浮水印還是機密資訊，輕鬆抹除。所有處理均在本地端完成，資料絕不外洩。
-                </p>
+    <!-- Wobble Card Section (Full Screen) -->
+    <div class="min-h-screen w-full bg-[#F5F5F7] flex flex-col justify-center py-24 px-4 snap-section">
+        <h2 class="apple-title max-w-7xl mx-auto w-full text-3xl md:text-5xl font-bold text-zinc-900 mb-16 pl-4">
+            核心特色
+        </h2>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto w-full">
+            <!-- Card 1 -->
+            <div class="wobble-container col-span-1 lg:col-span-2 bg-white min-h-[400px] lg:min-h-[350px] rounded-[2rem] relative overflow-hidden flex flex-col justify-center p-10 shadow-sm hover:shadow-xl transition-all duration-500 border border-black/5">
+                <div class="relative z-10 max-w-md">
+                    <h2 class="text-left text-balance text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-900">
+                        一鍵去除雜亂背景，凸顯主體
+                    </h2>
+                    <p class="mt-4 text-left text-base/6 text-zinc-500">
+                        採用先進 AI 演算法，能精準識別並消除圖片中不需要的元素，讓您的照片更乾淨、更具吸引力。
+                    </p>
+                </div>
+                <div class="absolute -right-20 -bottom-20 w-64 h-64 bg-pink-100 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
             </div>
-            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-neutral-600 rounded-full blur-2xl opacity-40 pointer-events-none"></div>
-        </div>
 
-        <!-- Card 3 -->
-        <div class="wobble-container col-span-1 lg:col-span-3 bg-blue-900 min-h-[400px] lg:min-h-[300px] rounded-2xl relative overflow-hidden flex flex-col justify-center p-8 shadow-2xl transition-all duration-300">
-            <div class="relative z-10 max-w-xl">
-                <h2 class="text-left text-balance text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight text-white">
-                    高效能處理，為專業與日常需求打造
-                </h2>
-                <p class="mt-4 text-left text-base/6 text-blue-200 max-w-2xl">
-                    不僅速度飛快，更具備高精準度的邊緣運算能力。告別繁瑣的手動修圖，立即體驗最先進的 AI 影像處理工具。
-                </p>
+            <!-- Card 2 -->
+            <div class="wobble-container col-span-1 min-h-[300px] bg-zinc-900 rounded-[2rem] relative overflow-hidden flex flex-col justify-center p-10 shadow-sm hover:shadow-xl transition-all duration-500">
+                <div class="relative z-10">
+                    <h2 class="max-w-80 text-left text-balance text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight text-white">
+                        保護隱私<br/>安全無虞
+                    </h2>
+                    <p class="mt-4 max-w-[26rem] text-left text-base/6 text-zinc-400">
+                        無論是浮水印還是機密資訊，輕鬆抹除。所有處理均在本地端完成，資料絕不外洩。
+                    </p>
+                </div>
+                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-zinc-800 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
             </div>
-            <div class="absolute right-0 top-0 w-96 h-96 bg-blue-500 rounded-full blur-[100px] opacity-30 pointer-events-none"></div>
+
+            <!-- Card 3 -->
+            <div class="wobble-container col-span-1 lg:col-span-3 bg-blue-600 min-h-[400px] lg:min-h-[350px] rounded-[2rem] relative overflow-hidden flex flex-col justify-center p-10 shadow-sm hover:shadow-xl transition-all duration-500">
+                <div class="relative z-10 max-w-xl">
+                    <h2 class="text-left text-balance text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight text-white">
+                        高效能處理，為專業與日常需求打造
+                    </h2>
+                    <p class="mt-4 text-left text-base/6 text-blue-100 max-w-2xl">
+                        不僅速度飛快，更具備高精準度的邊緣運算能力。告別繁瑣的手動修圖，立即體驗最先進的 AI 影像處理工具。
+                    </p>
+                </div>
+                <div class="absolute right-0 top-0 w-96 h-96 bg-blue-400 rounded-full blur-[100px] opacity-30 pointer-events-none"></div>
+            </div>
         </div>
     </div>
 
-    <!-- 3D Card Demo (放置修改後的圖片展示實力) -->
-    <div class="flex items-center justify-center mb-32 px-4 w-full">
-        <div class="card-container w-full sm:w-[32rem] h-auto group perspective cursor-pointer">
-            <div class="card-body bg-neutral-900 relative border border-white/10 rounded-2xl p-6 shadow-2xl transition-all duration-200">
-                <div class="card-item text-2xl font-bold text-white" data-translate-z="50">
-                    見證 AI 的魔力
+    <!-- Interstitial Text Flip 2 -->
+    <div class="min-h-[50vh] flex items-center justify-center bg-white px-4 snap-section">
+        <h1 class="apple-title relative max-w-4xl text-center text-4xl leading-tight font-bold tracking-tight text-zinc-800 md:text-6xl lg:text-7xl">
+            <div class="inline-block">
+                Experience the magic of 
+                <span class="text-flip-container-2 inline-flex flex-col h-[1.1em] overflow-hidden align-bottom relative ml-2 text-indigo-600 bg-indigo-50/50 px-2 rounded-xl">
+                    <span class="text-flip-inner-2 transition-transform duration-700 ease-in-out" style="transform: translateY(0%);">
+                        <span class="block h-[1.1em] leading-tight">AI</span>
+                        <span class="block h-[1.1em] leading-tight">Klareo</span>
+                        <span class="block h-[1.1em] leading-tight">Technology</span>
+                        <span class="block h-[1.1em] leading-tight">Eraser</span>
+                    </span>
+                </span>
+            </div>
+        </h1>
+    </div>
+
+    <!-- Apple Cards Carousel Demo -->
+    <div class="w-full min-h-screen bg-[#F5F5F7] py-24 flex flex-col justify-center snap-section">
+        <h2 class="apple-title max-w-7xl pl-4 mx-auto w-full text-3xl md:text-5xl font-bold text-zinc-900 mb-16">
+            Get to know our capabilities.
+        </h2>
+        
+        <div class="carousel-container relative w-full overflow-hidden">
+            <div class="flex gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory px-4 md:px-10 pb-10 hide-scrollbar" style="scroll-padding-left: 1rem;">
+                
+                <!-- Card 1 -->
+                <div class="carousel-card flex-shrink-0 w-[85vw] sm:w-[24rem] h-[35rem] rounded-[2.5rem] relative overflow-hidden snap-start cursor-pointer group shadow-md hover:shadow-xl transition-all duration-300 border border-black/5">
+                    <img src="introduce.png?v=2" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="AI Magic" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1593508512255-86ab42a8e620?q=80&w=3556&auto=format&fit=crop';">
+                    <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/10 to-transparent"></div>
+                    <div class="absolute inset-0 p-8 flex flex-col">
+                        <span class="text-white/90 text-sm font-semibold tracking-wide uppercase mb-2">Artificial Intelligence</span>
+                        <h3 class="text-white text-3xl md:text-4xl font-bold leading-tight">You can do more with AI.</h3>
+                    </div>
                 </div>
-                <div class="card-item text-neutral-400 text-sm max-w-sm mt-2" data-translate-z="60">
-                    滑鼠懸停於卡片，體驗令人驚豔的 3D 視覺效果與去背實力。
+
+                <!-- Card 2 -->
+                <div class="carousel-card flex-shrink-0 w-[85vw] sm:w-[24rem] h-[35rem] rounded-[2.5rem] relative overflow-hidden snap-start cursor-pointer group shadow-md hover:shadow-xl transition-all duration-300 border border-black/5">
+                    <img src="https://images.unsplash.com/photo-1531554694128-c4c6665f59c2?q=80&w=3387&auto=format&fit=crop" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Productivity">
+                    <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/10 to-transparent"></div>
+                    <div class="absolute inset-0 p-8 flex flex-col">
+                        <span class="text-white/90 text-sm font-semibold tracking-wide uppercase mb-2">Productivity</span>
+                        <h3 class="text-white text-3xl md:text-4xl font-bold leading-tight">Enhance your productivity.</h3>
+                    </div>
                 </div>
-                <div class="card-item w-full mt-6 relative rounded-xl overflow-hidden shadow-2xl flex justify-center bg-neutral-800" data-translate-z="100">
-                    <!-- 這裡準備了可以放置修改後圖片的地方 -->
-                    <img id="showcase-image" src="introduce.png?v=1" class="w-full h-auto max-h-[600px] object-contain rounded-xl transition-all duration-500 group-hover:scale-105" alt="效果展示圖" />
+
+                <!-- Card 3 -->
+                <div class="carousel-card flex-shrink-0 w-[85vw] sm:w-[24rem] h-[35rem] rounded-[2.5rem] relative overflow-hidden snap-start cursor-pointer group shadow-md hover:shadow-xl transition-all duration-300 border border-black/5">
+                    <img src="https://images.unsplash.com/photo-1713869791518-a770879e60dc?q=80&w=2333&auto=format&fit=crop" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Product">
+                    <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/10 to-transparent"></div>
+                    <div class="absolute inset-0 p-8 flex flex-col">
+                        <span class="text-white/90 text-sm font-semibold tracking-wide uppercase mb-2">Design</span>
+                        <h3 class="text-white text-3xl md:text-4xl font-bold leading-tight">Beautifully crafted.</h3>
+                    </div>
                 </div>
-                <div class="flex justify-between items-center mt-10">
-                    <div class="card-item px-4 py-2 rounded-xl text-sm font-normal text-white hover:bg-white/10 transition-colors" data-translate-z="20">
-                        了解更多細節 →
+
+                <!-- Card 4 -->
+                <div class="carousel-card flex-shrink-0 w-[85vw] sm:w-[24rem] h-[35rem] rounded-[2.5rem] relative overflow-hidden snap-start cursor-pointer group shadow-md hover:shadow-xl transition-all duration-300 border border-black/5">
+                    <img src="https://images.unsplash.com/photo-1599202860130-f600f4948364?q=80&w=2515&auto=format&fit=crop" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Speed">
+                    <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/10 to-transparent"></div>
+                    <div class="absolute inset-0 p-8 flex flex-col">
+                        <span class="text-white/90 text-sm font-semibold tracking-wide uppercase mb-2">Performance</span>
+                        <h3 class="text-white text-3xl md:text-4xl font-bold leading-tight">Blazing fast speed.</h3>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Magnetic Button Demo (點此進入主網站) -->
-    <div class="flex h-[20rem] w-full items-center justify-center">
+    <!-- Carousel Modal (Light Apple Theme) -->
+    <div id="carousel-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-zinc-900/40 backdrop-blur-md p-4 md:p-10 transition-opacity opacity-0 duration-300">
+        <div class="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] relative transform scale-95 transition-transform duration-300 shadow-2xl hide-scrollbar" id="carousel-modal-content">
+            <button id="close-modal" class="fixed top-6 right-6 bg-black/5 text-zinc-500 rounded-full p-2 z-[60] hover:bg-black/10 hover:text-zinc-900 transition-colors backdrop-blur-md">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <div id="modal-inner">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Magnetic Button / Footer Section -->
+    <div class="h-[60vh] w-full bg-white flex flex-col items-center justify-center snap-section relative overflow-hidden">
+        <div class="absolute top-0 w-full h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent"></div>
+        <h2 class="apple-title text-3xl md:text-5xl font-bold text-zinc-900 mb-12 text-center px-4">
+            準備好體驗了嗎？
+        </h2>
         <div class="magnetic-wrap p-10 cursor-pointer" onclick="sessionStorage.setItem('intro_seen', 'true'); window.location.href='index.html'">
-            <button class="magnetic-btn rounded-xl bg-gradient-to-b from-blue-500 to-blue-700 px-10 py-4 font-bold text-white text-xl shadow-lg ring-1 ring-white/20 ring-offset-2 ring-offset-black transition-transform duration-150 active:scale-95 hover:shadow-blue-500/50">
-                點此進入主網站
+            <button class="magnetic-btn rounded-full bg-zinc-900 px-12 py-5 font-semibold text-white text-xl shadow-xl ring-4 ring-zinc-900/10 ring-offset-2 transition-transform duration-150 active:scale-95 hover:shadow-2xl hover:-translate-y-1">
+                開始使用 Magic Eraser
             </button>
         </div>
     </div>
@@ -170,7 +264,7 @@
             fullScreen: { enable: false },
             fpsLimit: 120,
             particles: {
-                color: { value: "#ffffff" },
+                color: { value: "#3f3f46" }, // dark gray for white bg
                 links: { enable: false },
                 move: {
                     enable: true,
@@ -182,10 +276,10 @@
                 },
                 number: {
                     density: { enable: true, area: 800 },
-                    value: 150,
+                    value: 120,
                 },
                 opacity: {
-                    value: { min: 0.1, max: 1 },
+                    value: { min: 0.1, max: 0.5 }, // subtle
                     animation: {
                         enable: true,
                         speed: 1,
@@ -208,51 +302,86 @@
                 const centerY = rect.height / 2;
                 
                 // rotate inversely to mouse position
-                const rotateX = ((y - centerY) / centerY) * -8; // max 8 deg
-                const rotateY = ((x - centerX) / centerX) * 8;
+                const rotateX = ((y - centerY) / centerY) * -6; // slightly reduced for elegance
+                const rotateY = ((x - centerX) / centerX) * 6;
                 
-                container.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                container.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.01, 1.01, 1.01)`;
                 container.style.transition = 'none';
             });
             
             container.addEventListener('mouseleave', () => {
                 container.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
-                container.style.transition = 'transform 0.5s ease-out';
+                container.style.transition = 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1)'; // smooth ease out
             });
         });
 
-        // --- 3D Card ---
-        const cardContainer = document.querySelector('.card-container');
-        const cardBody = document.querySelector('.card-body');
-        const cardItems = document.querySelectorAll('.card-item');
+        // --- Carousel Modal ---
+        const carouselModal = document.getElementById('carousel-modal');
+        const carouselModalContent = document.getElementById('carousel-modal-content');
+        const closeModal = document.getElementById('close-modal');
+        const modalInner = document.getElementById('modal-inner');
 
-        if(cardContainer && cardBody) {
-            cardContainer.addEventListener('mousemove', (e) => {
-                const rect = cardContainer.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
+        const dummyContentHtml = `
+            <div class="p-8 md:p-14 mb-4 bg-[#F5F5F7] rounded-3xl mt-8">
+                <p class="text-zinc-600 text-base md:text-xl leading-relaxed font-sans max-w-3xl mx-auto">
+                    <span class="font-semibold text-zinc-900 block mb-4 text-xl md:text-2xl">
+                        The first rule of Apple club is that you boast about Apple club.
+                    </span> 
+                    Keep a journal, quickly jot down a grocery list, and take amazing class notes. Want to convert those notes to text? No problem. Langotiya jeetu ka mara hua yaar is ready to capture every thought.
+                </p>
+                <img src="https://assets.aceternity.com/macbook.png" alt="Macbook mockup" class="md:w-3/4 h-auto mx-auto object-contain mt-10 mix-blend-multiply" />
+            </div>
+        `;
+
+        document.querySelectorAll('.carousel-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const category = card.querySelector('span').innerText;
+                const title = card.querySelector('h3').innerText;
+                const imgSrc = card.querySelector('img').src;
+
+                modalInner.innerHTML = `
+                    <div class="relative w-full h-[40vh] md:h-[50vh]">
+                        <img src="${imgSrc}" class="w-full h-full object-cover rounded-t-[2.5rem]" />
+                        <div class="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
+                    </div>
+                    <div class="px-6 md:px-14 pb-14 -mt-12 relative z-10">
+                        <span class="text-zinc-500 text-sm font-semibold tracking-wide uppercase mb-2 block">${category}</span>
+                        <h3 class="text-zinc-900 text-3xl md:text-5xl font-bold mb-6 apple-title">${title}</h3>
+                        ${dummyContentHtml}
+                    </div>
+                `;
                 
-                const rotateX = ((y - centerY) / centerY) * -15; // max 15 deg
-                const rotateY = ((x - centerX) / centerX) * 15;
+                carouselModal.classList.remove('hidden');
+                carouselModal.classList.add('flex');
                 
-                cardBody.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-                cardBody.style.transition = 'none';
+                // Trigger reflow for animation
+                void carouselModal.offsetWidth;
                 
-                cardItems.forEach(item => {
-                    const z = item.getAttribute('data-translate-z') || 0;
-                    item.style.transform = `translateZ(${z}px)`;
-                });
+                carouselModal.classList.remove('opacity-0');
+                carouselModalContent.classList.remove('scale-95');
+                carouselModalContent.classList.add('scale-100');
+                
+                document.body.style.overflow = 'hidden'; // prevent bg scrolling
             });
+        });
 
-            cardContainer.addEventListener('mouseleave', () => {
-                cardBody.style.transform = `rotateX(0deg) rotateY(0deg)`;
-                cardBody.style.transition = 'transform 0.5s ease-out';
-                
-                cardItems.forEach(item => {
-                    item.style.transform = `translateZ(0px)`;
-                });
+        const hideModal = () => {
+            carouselModal.classList.add('opacity-0');
+            carouselModalContent.classList.remove('scale-100');
+            carouselModalContent.classList.add('scale-95');
+            setTimeout(() => {
+                carouselModal.classList.add('hidden');
+                carouselModal.classList.remove('flex');
+                document.body.style.overflow = ''; 
+            }, 300);
+        };
+
+        if (closeModal) {
+            closeModal.addEventListener('click', hideModal);
+        }
+        if (carouselModal) {
+            carouselModal.addEventListener('click', (e) => {
+                if(e.target === carouselModal) hideModal();
             });
         }
 
@@ -265,7 +394,7 @@
                 const x = e.clientX - rect.left - rect.width / 2;
                 const y = e.clientY - rect.top - rect.height / 2;
                 
-                btn.style.transform = `translate(${x * 0.4}px, ${y * 0.4}px)`;
+                btn.style.transform = `translate(${x * 0.3}px, ${y * 0.3}px)`;
                 btn.style.transition = 'none';
             });
             
@@ -274,6 +403,20 @@
                 btn.style.transition = 'transform 0.5s ease-out, box-shadow 0.5s ease-out';
             });
         });
+
+        // --- Text Flip Animation ---
+        const initTextFlip = (selector, count) => {
+            const flipInner = document.querySelector(selector);
+            if (!flipInner) return;
+            let index = 0;
+            setInterval(() => {
+                index = (index + 1) % count;
+                flipInner.style.transform = `translateY(-${index * (100 / count)}%)`;
+            }, 2000);
+        };
+        
+        initTextFlip('.text-flip-inner', 4);
+        initTextFlip('.text-flip-inner-2', 4);
     </script>
 </body>
 </html>
