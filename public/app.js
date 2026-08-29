@@ -530,98 +530,76 @@ const step1Actions = document.getElementById('step1Actions');
 const restartBtn = document.getElementById('restartBtn');
 
 function navigateTo(path) {
-    // Check if we are running from file:// protocol
-    if (window.location.protocol === 'file:') {
-        // Fallback for local files: just change hash instead of path
-        window.location.hash = path;
+    if (path === '/process') {
+        window.location.href = 'process.html';
+    } else if (path === '/download') {
+        window.location.href = 'download.html';
     } else {
-        history.pushState(null, '', path);
-        handleRoute();
+        window.location.href = 'index.html';
     }
 }
 
 function handleRoute() {
-    let path = '';
-    if (window.location.protocol === 'file:') {
-        path = window.location.hash.replace('#', '');
-    } else {
-        path = window.location.pathname;
-    }
+    // Determine which page we are on
+    const path = window.location.pathname;
+    const isProcess = path.includes('process') && !path.includes('index');
+    const isDownload = path.includes('download');
     
-    if (!step1 || !step2 || !step3) return;
-
-    step1.style.display = 'none';
-    step2.style.display = 'none';
-    step3.style.display = 'none';
-
-    // --- 廣告與流量統計重新整理 (SPA 換頁) ---
-    // 1. 觸發 Google Analytics 換頁 (如果有安裝 GA4)
-    if (typeof gtag === 'function') {
-        gtag('event', 'page_view', {
-            page_title: document.title,
-            page_location: window.location.href,
-            page_path: path
-        });
-    }
-    
-    // 2. 觸發 Google AdSense 廣告重新載入
-    setTimeout(() => {
-        try {
-            const adElements = document.querySelectorAll('.adsbygoogle');
-            if (adElements.length > 0 && typeof adsbygoogle !== 'undefined') {
-                // 清空已載入的廣告標記，強制 AdSense 重新抓取
-                adElements.forEach(el => {
-                    el.removeAttribute('data-adsbygoogle-status');
-                    el.innerHTML = '';
-                });
-                // 重新為每一個版位推送廣告
-                for (let i = 0; i < adElements.length; i++) {
-                    (adsbygoogle = window.adsbygoogle || []).push({});
+    // Load state from localforage
+    localforage.getItem('magic_eraser_files').then((savedFiles) => {
+        if (savedFiles && savedFiles.length > 0) {
+            selectedFiles = savedFiles;
+            
+            // Recreate Object URLs from blobs
+            selectedFiles.forEach(f => {
+                if (f.resultBlob && !f.resultUrl) {
+                    f.resultUrl = URL.createObjectURL(f.resultBlob);
                 }
+            });
+            
+            fileCountSpan.innerText = selectedFiles.length;
+            
+            if (isProcess) {
+                // Populate preview gallery for process page
+                previewGallery.innerHTML = '';
+                selectedFiles.forEach(fileObj => {
+                    createPreviewCard(fileObj);
+                });
+                processBtn.disabled = false;
+            } else if (isDownload) {
+                // Populate preview gallery for download page
+                previewGallery.innerHTML = '';
+                selectedFiles.forEach(fileObj => {
+                    createPreviewCard(fileObj);
+                });
+                downloadAllBtn.style.display = 'inline-flex';
             }
-        } catch (e) {
-            console.error('AdSense refresh error:', e);
-        }
-    }, 100);
-
-    
-    if (path.endsWith('/process')) {
-        if (selectedFiles.length === 0) {
-            if (window.location.protocol === 'file:') {
-                window.location.hash = '/';
-            } else {
-                history.replaceState(null, '', '/');
-            }
-            step1.style.display = 'block';
         } else {
-            step2.style.display = 'block';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-    } else if (path.endsWith('/download')) {
-        if (selectedFiles.length === 0) {
-            if (window.location.protocol === 'file:') {
-                window.location.hash = '/';
-            } else {
-                history.replaceState(null, '', '/');
+            // No files, redirect to index if not on index
+            if (isProcess || isDownload) {
+                window.location.href = 'index.html';
             }
-            step1.style.display = 'block';
-        } else {
-            step3.style.display = 'block';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-    } else {
-        step1.style.display = 'block';
-    }
+    }).catch((err) => {
+        console.error('Error loading files:', err);
+    });
 }
 
-handleRoute();
-window.addEventListener('popstate', handleRoute);
-window.addEventListener('hashchange', () => {
-    if (window.location.protocol === 'file:') handleRoute();
-});
-
 if (goToStep2Btn) {
-    goToStep2Btn.addEventListener('click', () => {
+    goToStep2Btn.addEventListener('click', async () => {
+        // Stateful button animation
+        goToStep2Btn.classList.add('loading');
+        
+        // Wait for loading animation to show (simulating async work)
+        await new Promise(r => setTimeout(r, 600));
+        
+        goToStep2Btn.classList.remove('loading');
+        goToStep2Btn.classList.add('success');
+        
+        // Wait for success check to display
+        await new Promise(r => setTimeout(r, 600));
+        
+        // Navigate
         navigateTo('/process');
     });
 }
@@ -633,6 +611,7 @@ if (backToStep1Btn) {
 if (restartBtn) {
     restartBtn.addEventListener('click', () => {
         selectedFiles = [];
+        localforage.setItem('magic_eraser_files', []);
         previewGallery.innerHTML = '';
         if (fileInput) fileInput.value = '';
         if (fileCountSpan) fileCountSpan.innerText = '0';
@@ -728,12 +707,16 @@ function handleFiles(files) {
     statusText.innerText = `已載入 ${selectedFiles.length} 張圖片，點擊按鈕開始處理`;
     if (step1Actions) {
         step1Actions.style.display = 'block';
-        if (goToStep2Btn) goToStep2Btn.innerText = `下一步：設定與去除 (${selectedFiles.length} 張)`;
+        const textSpan = document.getElementById('goToStep2BtnText');
+        if (textSpan) textSpan.innerText = `下一步：設定與去除 (${selectedFiles.length} 張)`;
     }
     statusText.style.color = "var(--primary)";
 
     // reset input value so you can select the same files again
     fileInput.value = '';
+    
+    // Save to localforage
+    localforage.setItem('magic_eraser_files', selectedFiles).catch(console.error);
 }
 
 function createPreviewCard(fileObj) {
@@ -776,12 +759,47 @@ function createPreviewCard(fileObj) {
         const img = new Image();
         img.onload = () => {
             const canvas = document.getElementById(`input_${fileObj.id}`);
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+            }
         };
         img.src = e.target.result;
+        
+        // Draw output if available
+        if (fileObj.resultUrl) {
+            const resultImg = new Image();
+            resultImg.onload = () => {
+                const outCanvas = document.getElementById(`output_${fileObj.id}`);
+                if (outCanvas) {
+                    const ctx = outCanvas.getContext('2d');
+                    outCanvas.width = resultImg.width;
+                    outCanvas.height = resultImg.height;
+                    ctx.drawImage(resultImg, 0, 0);
+                }
+                
+                const dlBtn = document.getElementById(`dl_${fileObj.id}`);
+                if (dlBtn) {
+                    dlBtn.style.display = 'inline-flex';
+                    dlBtn.onclick = () => {
+                        const link = document.createElement('a');
+                        link.download = `erased_${fileObj.file.name}`;
+                        link.href = fileObj.resultUrl;
+                        link.click();
+                    };
+                }
+            };
+            resultImg.src = fileObj.resultUrl;
+            
+            // Set status to done visually
+            const statusEl = document.getElementById(`status_${fileObj.id}`);
+            if (statusEl) {
+                statusEl.className = 'file-status status-done';
+                statusEl.innerText = '處理成功';
+            }
+        }
     };
     reader.readAsDataURL(fileObj.file);
 }
@@ -893,9 +911,9 @@ processBtn.addEventListener('click', async () => {
                 throw new Error(errData.error || `HTTP 錯誤 ${response.status}`);
             }
 
-            // 取得回傳的圖片 blob
             const blob = await response.blob();
             const imgUrl = URL.createObjectURL(blob);
+            fileObj.resultBlob = blob;
             fileObj.resultUrl = imgUrl;
 
             // Draw output image
@@ -1051,3 +1069,16 @@ function updateSubscriptionModal(isVip) {
         planIndicator.style.display = isVip ? 'block' : 'none';
     }
 }
+
+
+// Resizable Navbar Logic
+window.addEventListener('scroll', () => {
+    const dock = document.querySelector('.top-dock');
+    if (dock) {
+        if (window.scrollY > 20) {
+            dock.classList.add('scrolled');
+        } else {
+            dock.classList.remove('scrolled');
+        }
+    }
+});

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magic Eraser Klareo - 介紹</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- tsParticles -->
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles-engine@2/tsparticles.engine.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles-basic@2/tsparticles.basic.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
+    
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            margin: 0;
+            overflow-x: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Sparkles */
+        #tsparticles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+
+        /* 3D Card */
+        .perspective {
+            perspective: 1000px;
+        }
+        .card-body {
+            transform-style: preserve-3d;
+            will-change: transform;
+        }
+        .card-item {
+            transform-style: preserve-3d;
+            will-change: transform;
+            transition: transform 0.2s ease-out;
+        }
+        
+        /* Wobble */
+        .wobble-container {
+            will-change: transform;
+            cursor: pointer;
+        }
+        
+        /* Magnetic */
+        .magnetic-wrap {
+            display: inline-block;
+        }
+        .magnetic-btn {
+            will-change: transform;
+        }
+
+        .gradient-line {
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 1) 50%, transparent);
+        }
+        .gradient-line-sky {
+            background: linear-gradient(90deg, transparent, rgba(14, 165, 233, 1) 50%, transparent);
+        }
+    </style>
+</head>
+<body class="bg-black text-white antialiased pb-20">
+
+    <!-- Header / Sparkles (Magic Eraser Klareo) -->
+    <div class="h-[30rem] w-full bg-black flex flex-col items-center justify-center overflow-hidden rounded-md relative mb-20">
+        <h1 class="md:text-7xl text-4xl lg:text-9xl font-bold text-center text-white relative z-20">
+            Magic Eraser Klareo
+        </h1>
+        <div class="w-full max-w-[40rem] h-40 relative mt-4">
+            <!-- Gradients -->
+            <div class="absolute inset-x-10 md:inset-x-20 top-0 gradient-line h-[2px] w-3/4 blur-sm mx-auto"></div>
+            <div class="absolute inset-x-10 md:inset-x-20 top-0 gradient-line h-px w-3/4 mx-auto"></div>
+            <div class="absolute inset-x-20 md:inset-x-60 top-0 gradient-line-sky h-[5px] w-1/4 blur-sm mx-auto"></div>
+            <div class="absolute inset-x-20 md:inset-x-60 top-0 gradient-line-sky h-px w-1/4 mx-auto"></div>
+
+            <!-- Core component (particles) -->
+            <div id="tsparticles" class="w-full h-full relative z-10"></div>
+
+            <!-- Radial Gradient to prevent sharp edges -->
+            <div class="absolute inset-0 w-full h-full bg-black z-20 pointer-events-none" style="mask-image: radial-gradient(350px 200px at top, transparent 20%, white); -webkit-mask-image: radial-gradient(350px 200px at top, transparent 20%, white);"></div>
+        </div>
+    </div>
+
+    <!-- Wobble Card Demo (網站特色) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto w-full px-4 mb-32">
+        <!-- Card 1 -->
+        <div class="wobble-container col-span-1 lg:col-span-2 bg-pink-900 min-h-[400px] lg:min-h-[300px] rounded-2xl relative overflow-hidden flex flex-col justify-center p-8 shadow-2xl transition-all duration-300">
+            <div class="relative z-10 max-w-md">
+                <h2 class="text-left text-balance text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight text-white">
+                    一鍵去除雜亂背景，凸顯主體
+                </h2>
+                <p class="mt-4 text-left text-base/6 text-pink-100">
+                    Magic Eraser Klareo 採用先進 AI 演算法，能精準識別並消除圖片中不需要的元素，讓您的照片更乾淨、更具吸引力。
+                </p>
+            </div>
+            <!-- Decorative gradient -->
+            <div class="absolute -right-20 -bottom-20 w-64 h-64 bg-pink-500 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="wobble-container col-span-1 min-h-[300px] bg-neutral-800 rounded-2xl relative overflow-hidden flex flex-col justify-center p-8 shadow-2xl transition-all duration-300">
+            <div class="relative z-10">
+                <h2 class="max-w-80 text-left text-balance text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight text-white">
+                    保護隱私<br/>安全無虞
+                </h2>
+                <p class="mt-4 max-w-[26rem] text-left text-base/6 text-neutral-300">
+                    無論是浮水印還是機密資訊，輕鬆抹除。所有處理均在本地端完成，資料絕不外洩。
+                </p>
+            </div>
+            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-neutral-600 rounded-full blur-2xl opacity-40 pointer-events-none"></div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="wobble-container col-span-1 lg:col-span-3 bg-blue-900 min-h-[400px] lg:min-h-[300px] rounded-2xl relative overflow-hidden flex flex-col justify-center p-8 shadow-2xl transition-all duration-300">
+            <div class="relative z-10 max-w-xl">
+                <h2 class="text-left text-balance text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight text-white">
+                    高效能處理，為專業與日常需求打造
+                </h2>
+                <p class="mt-4 text-left text-base/6 text-blue-200 max-w-2xl">
+                    不僅速度飛快，更具備高精準度的邊緣運算能力。告別繁瑣的手動修圖，立即體驗最先進的 AI 影像處理工具。
+                </p>
+            </div>
+            <div class="absolute right-0 top-0 w-96 h-96 bg-blue-500 rounded-full blur-[100px] opacity-30 pointer-events-none"></div>
+        </div>
+    </div>
+
+    <!-- 3D Card Demo (放置修改後的圖片展示實力) -->
+    <div class="flex items-center justify-center mb-32 px-4 w-full">
+        <div class="card-container w-full sm:w-[32rem] h-auto group perspective cursor-pointer">
+            <div class="card-body bg-neutral-900 relative border border-white/10 rounded-2xl p-6 shadow-2xl transition-all duration-200">
+                <div class="card-item text-2xl font-bold text-white" data-translate-z="50">
+                    見證 AI 的魔力
+                </div>
+                <div class="card-item text-neutral-400 text-sm max-w-sm mt-2" data-translate-z="60">
+                    滑鼠懸停於卡片，體驗令人驚豔的 3D 視覺效果與去背實力。
+                </div>
+                <div class="card-item w-full mt-6 relative rounded-xl overflow-hidden shadow-2xl" data-translate-z="100">
+                    <!-- 這裡準備了可以放置修改後圖片的地方 -->
+                    <img id="showcase-image" src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2560&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" height="1000" width="1000" class="h-64 w-full object-cover rounded-xl transition-all duration-500 group-hover:scale-105" alt="效果展示" />
+                    <!-- Hint text for image -->
+                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40">
+                        <span class="text-white font-semibold text-lg tracking-wider drop-shadow-md">展示圖即將上線</span>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center mt-10">
+                    <div class="card-item px-4 py-2 rounded-xl text-sm font-normal text-white hover:bg-white/10 transition-colors" data-translate-z="20">
+                        了解更多細節 →
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Magnetic Button Demo (點此進入主網站) -->
+    <div class="flex h-[20rem] w-full items-center justify-center">
+        <div class="magnetic-wrap p-10 cursor-pointer" onclick="window.location.href='index.html'">
+            <button class="magnetic-btn rounded-xl bg-gradient-to-b from-blue-500 to-blue-700 px-10 py-4 font-bold text-white text-xl shadow-lg ring-1 ring-white/20 ring-offset-2 ring-offset-black transition-transform duration-150 active:scale-95 hover:shadow-blue-500/50">
+                點此進入主網站
+            </button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // --- Sparkles (tsParticles) ---
+        tsParticles.load("tsparticles", {
+            fullScreen: { enable: false },
+            fpsLimit: 120,
+            particles: {
+                color: { value: "#ffffff" },
+                links: { enable: false },
+                move: {
+                    enable: true,
+                    direction: "none",
+                    outModes: { default: "out" },
+                    random: true,
+                    speed: 0.8,
+                    straight: false,
+                },
+                number: {
+                    density: { enable: true, area: 800 },
+                    value: 150,
+                },
+                opacity: {
+                    value: { min: 0.1, max: 1 },
+                    animation: {
+                        enable: true,
+                        speed: 1,
+                        minimumValue: 0.1,
+                    }
+                },
+                shape: { type: "circle" },
+                size: { value: { min: 0.5, max: 2.5 } },
+            },
+            detectRetina: true,
+        });
+
+        // --- Wobble Card ---
+        document.querySelectorAll('.wobble-container').forEach(container => {
+            container.addEventListener('mousemove', (e) => {
+                const rect = container.getBoundingClientRect();
+                const x = e.clientX - rect.left; 
+                const y = e.clientY - rect.top; 
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                // rotate inversely to mouse position
+                const rotateX = ((y - centerY) / centerY) * -8; // max 8 deg
+                const rotateY = ((x - centerX) / centerX) * 8;
+                
+                container.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                container.style.transition = 'none';
+            });
+            
+            container.addEventListener('mouseleave', () => {
+                container.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+                container.style.transition = 'transform 0.5s ease-out';
+            });
+        });
+
+        // --- 3D Card ---
+        const cardContainer = document.querySelector('.card-container');
+        const cardBody = document.querySelector('.card-body');
+        const cardItems = document.querySelectorAll('.card-item');
+
+        if(cardContainer && cardBody) {
+            cardContainer.addEventListener('mousemove', (e) => {
+                const rect = cardContainer.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = ((y - centerY) / centerY) * -15; // max 15 deg
+                const rotateY = ((x - centerX) / centerX) * 15;
+                
+                cardBody.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+                cardBody.style.transition = 'none';
+                
+                cardItems.forEach(item => {
+                    const z = item.getAttribute('data-translate-z') || 0;
+                    item.style.transform = `translateZ(${z}px)`;
+                });
+            });
+
+            cardContainer.addEventListener('mouseleave', () => {
+                cardBody.style.transform = `rotateX(0deg) rotateY(0deg)`;
+                cardBody.style.transition = 'transform 0.5s ease-out';
+                
+                cardItems.forEach(item => {
+                    item.style.transform = `translateZ(0px)`;
+                });
+            });
+        }
+
+        // --- Magnetic Button ---
+        document.querySelectorAll('.magnetic-wrap').forEach(wrap => {
+            const btn = wrap.querySelector('.magnetic-btn');
+            
+            wrap.addEventListener('mousemove', (e) => {
+                const rect = wrap.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+                
+                btn.style.transform = `translate(${x * 0.4}px, ${y * 0.4}px)`;
+                btn.style.transition = 'none';
+            });
+            
+            wrap.addEventListener('mouseleave', () => {
+                btn.style.transform = `translate(0px, 0px)`;
+                btn.style.transition = 'transform 0.5s ease-out, box-shadow 0.5s ease-out';
+            });
+        });
+    </script>
+</body>
+</html>

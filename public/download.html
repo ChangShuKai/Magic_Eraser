@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Magic Eraser 考卷手寫去除</title>
+    <title>Magic Eraser - 下載結果</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8405570774557707"
         crossorigin="anonymous"></script>
@@ -263,30 +263,16 @@
         <!-- STEP 3: Download -->
         
 
-<div id="step1" class="step-container">
-            <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
-                <svg class="upload-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
-                </svg>
-                <h3>點擊或拖曳考卷圖片至此</h3>
-                <p>支援 JPG, PNG 高畫質處理</p>
-                <span class="limit-text" id="limitText">一次最多支援上傳 3 張圖片</span>
-                <input type="file" id="fileInput" accept="image/png, image/jpeg, image/jpg" multiple style="display: none;">
+<div id="step3" class="step-container" style="display: block;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="color: var(--success); margin-bottom: 10px;">🎉 處理完成！</h2>
+                <p style="color: var(--text-muted);">您的圖片已成功去除手寫筆跡</p>
             </div>
-            <div class="action-area" id="step1Actions" style="display: none; margin-top: 20px;">
-                <button id="goToStep2Btn" class="stateful-btn bg-green-500">
-                    <div class="stateful-content">
-                        <svg class="stateful-loader" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                            <path d="M12 3a9 9 0 1 0 9 9" />
-                        </svg>
-                        <svg class="stateful-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                            <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
-                            <path d="M9 12l2 2l4 -4" />
-                        </svg>
-                        <span id="goToStep2BtnText">下一步：設定與去除</span>
-                    </div>
+            <div class="action-area">
+                <button id="restartBtn" class="btn" style="background: #94a3b8; color: white;">處理其他圖片</button>
+                <button id="downloadAllBtn" class="btn btn-success" style="display: inline-flex;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    下載全部結果
                 </button>
             </div>
         </div>
