@@ -6,10 +6,6 @@
     <title>Magic Eraser Klareo - 介紹</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- tsParticles -->
-    <script src="https://cdn.jsdelivr.net/npm/tsparticles-engine@2/tsparticles.engine.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tsparticles-basic@2/tsparticles.basic.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
     
     <style>
         body {
@@ -87,32 +83,83 @@
 </head>
 <body class="antialiased selection:bg-blue-200">
 
-    <!-- Hero / Sparkles Section (Full Viewport) -->
-    <div class="min-h-screen w-full flex flex-col items-center justify-center overflow-hidden relative">
-        <div class="relative z-20 text-center px-4 mt-[-10vh]">
-            <h1 class="apple-title text-5xl md:text-7xl lg:text-9xl font-bold text-gradient mb-6 pb-2">
-                Magic Eraser Klareo
-            </h1>
-            <p class="apple-text text-xl md:text-3xl text-zinc-500 font-medium max-w-2xl mx-auto text-balance">
-                彈指之間，完美消除任何不需要的元素。
-            </p>
+    <!-- Floating Navbar -->
+    <nav class="fixed top-4 md:top-6 left-1/2 -translate-x-1/2 z-50 w-[92%] md:w-[85%] max-w-5xl bg-white/70 backdrop-blur-xl border border-zinc-200/50 shadow-[0_8px_32px_rgba(0,0,0,0.06)] rounded-full px-5 py-3 flex items-center justify-between transition-all duration-300">
+        <!-- Logo -->
+        <a href="#home" class="flex items-center gap-2 text-zinc-900 font-bold text-xl apple-title cursor-pointer transition-transform hover:scale-105">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+            <span>Klareo</span>
+        </a>
+
+        <!-- Desktop Nav Items -->
+        <div class="hidden md:flex items-center gap-8">
+            <a href="#features" class="text-sm font-semibold text-zinc-500 hover:text-zinc-900 transition-colors apple-text">核心特色</a>
+            <a href="#capabilities" class="text-sm font-semibold text-zinc-500 hover:text-zinc-900 transition-colors apple-text">實力展示</a>
+            <a href="#cta" class="text-sm font-semibold text-zinc-500 hover:text-zinc-900 transition-colors apple-text">準備體驗</a>
         </div>
 
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[50rem] h-[30rem] mt-20 pointer-events-none">
-            <!-- Core component (particles) -->
-            <div id="tsparticles" class="w-full h-full relative z-10 opacity-70"></div>
-            <!-- Radial Gradient Mask matching body bg -->
-            <div class="absolute inset-0 w-full h-full z-20 pointer-events-none" style="background-color: #FBFBFD; mask-image: radial-gradient(400px 300px at center, transparent 10%, white 70%); -webkit-mask-image: radial-gradient(400px 300px at center, transparent 10%, white 70%);"></div>
+        <!-- Desktop Buttons -->
+        <div class="hidden md:flex items-center gap-3">
+            <button onclick="window.location.href='index.html'" class="px-5 py-2.5 rounded-full text-sm font-semibold text-zinc-600 hover:bg-zinc-100 transition-colors apple-text">
+                登入
+            </button>
+            <button onclick="sessionStorage.setItem('intro_seen', 'true'); window.location.href='index.html'" class="px-5 py-2.5 rounded-full text-sm font-bold text-white bg-zinc-900 hover:bg-zinc-800 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 apple-text">
+                開始使用
+            </button>
         </div>
-        
-        <!-- Scroll indicator -->
-        <div class="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce text-zinc-400">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+
+        <!-- Mobile Toggle -->
+        <button id="mobile-menu-toggle" class="md:hidden text-zinc-800 p-2 z-[60] relative">
+            <svg id="menu-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300"><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>
+            <svg id="close-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden transition-transform duration-300"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 z-40 bg-white/95 backdrop-blur-2xl flex-col pt-32 px-8 hidden opacity-0 transition-opacity duration-300">
+        <div class="flex flex-col gap-8 text-left">
+            <a href="#features" class="mobile-link text-3xl font-bold text-zinc-800 apple-title border-b border-zinc-100 pb-4">核心特色</a>
+            <a href="#capabilities" class="mobile-link text-3xl font-bold text-zinc-800 apple-title border-b border-zinc-100 pb-4">實力展示</a>
+            <a href="#cta" class="mobile-link text-3xl font-bold text-zinc-800 apple-title border-b border-zinc-100 pb-4">準備體驗</a>
+        </div>
+        <div class="flex flex-col gap-4 mt-auto mb-10">
+            <button onclick="window.location.href='index.html'" class="w-full py-4 rounded-2xl text-lg font-semibold text-zinc-700 bg-zinc-100 active:bg-zinc-200 transition-colors apple-text">
+                登入
+            </button>
+            <button onclick="sessionStorage.setItem('intro_seen', 'true'); window.location.href='index.html'" class="w-full py-4 rounded-2xl text-lg font-bold text-white bg-blue-600 active:bg-blue-700 transition-colors shadow-xl apple-text">
+                開始使用
+            </button>
+        </div>
+    </div>
+
+    <!-- Hero / Scroll Animation Section -->
+    <div id="home" class="hero-scroll-wrapper relative h-[120vh] w-full bg-[#FBFBFD] pt-10">
+        <div class="sticky top-0 h-screen w-full flex flex-col items-center justify-center pt-16 md:pt-20" style="perspective: 1200px;">
+            
+            <div class="hero-scroll-title text-center mb-6 md:mb-10 transition-transform duration-75 will-change-transform z-20 px-4">
+                <h1 class="text-4xl md:text-5xl font-semibold text-zinc-900 apple-title tracking-tight">
+                    Unleash the power of <br />
+                    <span class="text-5xl md:text-[7.5rem] font-bold mt-2 md:mt-4 leading-none text-gradient block drop-shadow-sm pb-2">
+                        Magic Eraser
+                    </span>
+                </h1>
+            </div>
+
+            <div class="hero-scroll-card w-[92%] max-w-5xl h-[45vh] md:h-[65vh] bg-zinc-800 rounded-[2rem] md:rounded-[2.5rem] border-[4px] md:border-[8px] border-[#3f3f46] p-1 md:p-2 shadow-2xl transition-transform duration-75 ease-out will-change-transform z-10" style="transform: rotateX(25deg) scale(0.9) translateY(40px);">
+                <div class="w-full h-full bg-black rounded-[1.5rem] md:rounded-[2rem] overflow-hidden relative">
+                    <img src="hero_scroll.png" class="w-full h-full object-cover object-left-top" alt="hero" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1616499370260-485e3e5810e7?q=80&w=3538&auto=format&fit=crop';">
+                </div>
+            </div>
+            
+            <!-- Scroll indicator -->
+            <div class="hero-scroll-indicator absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce text-zinc-400 transition-opacity duration-300">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+            </div>
         </div>
     </div>
 
     <!-- Features Section -->
-    <div class="w-full py-32 px-4 md:px-8">
+    <div id="features" class="w-full py-32 px-4 md:px-8">
         <!-- Unified Section Title with Text Flip -->
         <h2 class="apple-title max-w-7xl mx-auto text-4xl md:text-6xl lg:text-7xl font-bold text-zinc-900 mb-20 text-balance leading-tight">
             讓您的影像處理變得 10 倍 
@@ -174,7 +221,7 @@
     </div>
 
     <!-- Carousel Section (Capabilities) -->
-    <div class="w-full py-32 overflow-hidden bg-[#FBFBFD]">
+    <div id="capabilities" class="w-full py-32 overflow-hidden bg-[#FBFBFD]">
         <!-- Unified Section Title with Text Flip -->
         <h2 class="apple-title max-w-7xl px-4 md:px-8 mx-auto w-full text-4xl md:text-6xl lg:text-7xl font-bold text-zinc-900 mb-20 text-balance leading-tight">
             親自體驗 
@@ -248,7 +295,7 @@
     </div>
 
     <!-- Footer / CTA Section -->
-    <div class="py-32 w-full flex flex-col items-center justify-center relative overflow-hidden">
+    <div id="cta" class="py-32 w-full flex flex-col items-center justify-center relative overflow-hidden">
         <h2 class="apple-title text-4xl md:text-5xl font-bold text-zinc-900 mb-10 text-center px-4 tracking-tight">
             準備好體驗了嗎？
         </h2>
@@ -261,37 +308,41 @@
 
     <!-- Scripts -->
     <script>
-        // --- Sparkles (tsParticles) ---
-        tsParticles.load("tsparticles", {
-            fullScreen: { enable: false },
-            fpsLimit: 120,
-            particles: {
-                color: { value: "#8e8e93" }, // Apple gray for particles
-                links: { enable: false },
-                move: {
-                    enable: true,
-                    direction: "none",
-                    outModes: { default: "out" },
-                    random: true,
-                    speed: 0.5,
-                    straight: false,
-                },
-                number: {
-                    density: { enable: true, area: 1000 },
-                    value: 80,
-                },
-                opacity: {
-                    value: { min: 0.1, max: 0.4 },
-                    animation: {
-                        enable: true,
-                        speed: 1,
-                        minimumValue: 0.1,
-                    }
-                },
-                shape: { type: "circle" },
-                size: { value: { min: 0.5, max: 2 } },
-            },
-            detectRetina: true,
+        // --- Mobile Menu ---
+        const mobileToggle = document.getElementById('mobile-menu-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuIcon = document.getElementById('menu-icon');
+        const closeIcon = document.getElementById('close-icon');
+        
+        const toggleMobileMenu = () => {
+            const isHidden = mobileMenu.classList.contains('hidden');
+            if(isHidden) {
+                mobileMenu.classList.remove('hidden');
+                mobileMenu.classList.add('flex');
+                void mobileMenu.offsetWidth; // Reflow
+                mobileMenu.classList.remove('opacity-0');
+                menuIcon.classList.add('hidden');
+                closeIcon.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } else {
+                mobileMenu.classList.add('opacity-0');
+                menuIcon.classList.remove('hidden');
+                closeIcon.classList.add('hidden');
+                document.body.style.overflow = '';
+                setTimeout(() => {
+                    mobileMenu.classList.add('hidden');
+                    mobileMenu.classList.remove('flex');
+                }, 300);
+            }
+        };
+
+        mobileToggle.addEventListener('click', toggleMobileMenu);
+
+        // Close mobile menu when clicking links
+        document.querySelectorAll('.mobile-link').forEach(link => {
+            link.addEventListener('click', () => {
+                toggleMobileMenu();
+            });
         });
 
         // --- Carousel Modal ---
@@ -398,6 +449,45 @@
         
         initTextFlip('.text-flip-inner', 4);
         initTextFlip('.text-flip-inner-2', 4);
+
+        // --- Container Scroll Animation ---
+        const scrollWrapper = document.querySelector('.hero-scroll-wrapper');
+        const scrollCard = document.querySelector('.hero-scroll-card');
+        const scrollTitle = document.querySelector('.hero-scroll-title');
+        const scrollIndicator = document.querySelector('.hero-scroll-indicator');
+
+        if (scrollWrapper && scrollCard && scrollTitle) {
+            window.addEventListener('scroll', () => {
+                const rect = scrollWrapper.getBoundingClientRect();
+                const maxScroll = scrollWrapper.offsetHeight - window.innerHeight;
+                let progress = -rect.top / maxScroll;
+                
+                // Clamp progress between 0 and 1
+                progress = Math.max(0, Math.min(1, progress));
+                
+                // Fade out indicator
+                if (progress > 0.05) {
+                    scrollIndicator.classList.add('opacity-0');
+                } else {
+                    scrollIndicator.classList.remove('opacity-0');
+                }
+
+                // Map progress to transformations
+                // rotateX: 25deg -> 0deg
+                // scale: 0.9 -> 1.0
+                // translateY: 40px -> 0px
+                const rotateX = 25 - (progress * 25);
+                const scale = 0.9 + (progress * 0.1);
+                const translateY = 40 - (progress * 40);
+                
+                scrollCard.style.transform = `rotateX(${rotateX}deg) scale(${scale}) translateY(${translateY}px)`;
+                
+                // Move title slightly up and scale down slightly
+                const titleTranslateY = -(progress * 40);
+                const titleScale = 1 - (progress * 0.1);
+                scrollTitle.style.transform = `translateY(${titleTranslateY}px) scale(${titleScale})`;
+            });
+        }
     </script>
 </body>
 </html>
