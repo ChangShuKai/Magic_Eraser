@@ -687,7 +687,7 @@ function handleFiles(files) {
     processBtn.disabled = false;
     statusText.innerText = `已載入 ${selectedFiles.length} 張圖片，點擊按鈕開始處理`;
     if (step1Actions) {
-        step1Actions.style.display = 'block';
+        step1Actions.style.display = 'flex';
         const textSpan = document.getElementById('goToStep2BtnText');
         if (textSpan) textSpan.innerText = `下一步：設定與去除 (${selectedFiles.length} 張)`;
     }
