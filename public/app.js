@@ -515,6 +515,7 @@ checkUser();
 
 const fileInput = document.getElementById('fileInput');
 const dropZone = document.getElementById('dropZone');
+const fileCountSpan = document.getElementById('fileCount');
 const processBtn = document.getElementById('processBtn');
 const downloadAllBtn = document.getElementById('downloadAllBtn');
 const statusText = document.getElementById('status');
@@ -557,7 +558,7 @@ function handleRoute() {
                 }
             });
             
-            fileCountSpan.innerText = selectedFiles.length;
+            if (fileCountSpan) fileCountSpan.innerText = selectedFiles.length;
             
             if (isProcess) {
                 // Populate preview gallery for process page
@@ -634,29 +635,29 @@ if (restartBtn) {
 }
 
 
-const fileCountSpan = document.getElementById('fileCount');
+
 
 let selectedFiles = []; // Array of objects: { id, file, resultUrl, status }
 const MAX_FILES = 3;
 
 // 1. 處理檔案上傳
-fileInput.addEventListener('change', (e) => {
+if (fileInput) fileInput.addEventListener('change', (e) => {
     handleFiles(e.target.files);
 });
 
-dropZone.addEventListener('dragover', (e) => {
+if (dropZone) dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
     dropZone.style.borderColor = 'var(--primary)';
     dropZone.style.background = '#eff6ff';
 });
 
-dropZone.addEventListener('dragleave', (e) => {
+if (dropZone) dropZone.addEventListener('dragleave', (e) => {
     e.preventDefault();
     dropZone.style.borderColor = '#cbd5e1';
     dropZone.style.background = '#f8fafc';
 });
 
-dropZone.addEventListener('drop', (e) => {
+if (dropZone) dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropZone.style.borderColor = '#cbd5e1';
     dropZone.style.background = '#f8fafc';
@@ -702,7 +703,7 @@ function handleFiles(files) {
         createPreviewCard(fileObj);
     });
 
-    fileCountSpan.innerText = selectedFiles.length;
+    if (fileCountSpan) fileCountSpan.innerText = selectedFiles.length;
     processBtn.disabled = false;
     statusText.innerText = `已載入 ${selectedFiles.length} 張圖片，點擊按鈕開始處理`;
     if (step1Actions) {
@@ -805,7 +806,7 @@ function createPreviewCard(fileObj) {
 }
 
 // 2. 送出至後端處理
-processBtn.addEventListener('click', async () => {
+if (processBtn) processBtn.addEventListener('click', async () => {
     if (selectedFiles.length === 0) return;
 
     if (!supabaseClient) {
@@ -982,7 +983,7 @@ processBtn.addEventListener('click', async () => {
 });
 
 // 3. 一鍵下載全部 (ZIP)
-downloadAllBtn.addEventListener('click', async () => {
+if (downloadAllBtn) downloadAllBtn.addEventListener('click', async () => {
     if (typeof JSZip === 'undefined') {
         alert("無法載入 JSZip，請使用單張下載。");
         return;
@@ -1022,14 +1023,14 @@ downloadAllBtn.addEventListener('click', async () => {
 });
 
 // 4. VIP Feature Enforcement
-document.getElementById('cb_inpaint').addEventListener('click', (e) => {
+if (document.getElementById('cb_inpaint')) document.getElementById('cb_inpaint').addEventListener('click', (e) => {
     if (!isUserVIP) {
         e.preventDefault();
         alert("✨ 使用 AI 智慧修補 (Inpaint) 是 SVIP 專屬功能！請升級 SVIP 後使用。");
     }
 });
 
-document.getElementById('cb_enhance').addEventListener('click', (e) => {
+if (document.getElementById('cb_enhance')) document.getElementById('cb_enhance').addEventListener('click', (e) => {
     if (!isUserVIP) {
         e.preventDefault();
         alert("🌓 增強黑白對比度 是 SVIP 專屬功能！請升級 SVIP 後使用。");
@@ -1055,7 +1056,7 @@ function updateRadioGlider() {
     }
 }
 document.querySelectorAll('input[name="color_type"]').forEach(radio => {
-    radio.addEventListener('change', updateRadioGlider);
+    if (radio) radio.addEventListener('change', updateRadioGlider);
 });
 window.addEventListener('resize', updateRadioGlider);
 // Run once on load
