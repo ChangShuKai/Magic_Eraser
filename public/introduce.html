@@ -9,12 +9,18 @@
     
     <style>
         :root {
-            --apple-gray: #f5f5f7;
+            --apple-bg: #f5f5f7;
+            --apple-card: #ffffff;
             --apple-text: #1d1d1f;
+            --apple-muted: #86868b;
+            --apple-border: rgba(0,0,0,0.05);
+            --apple-shadow: 0 4px 24px rgba(0,0,0,0.04);
+            --apple-shadow-hover: 0 20px 40px rgba(0,0,0,0.08);
+            --apple-blue: #0071e3;
         }
 
         body {
-            background-color: var(--apple-gray);
+            background-color: var(--apple-bg);
             color: var(--apple-text);
             margin: 0;
             overflow-x: hidden;
@@ -22,71 +28,65 @@
             scroll-behavior: smooth;
         }
 
+        .text-primary { color: var(--apple-text); }
+        .text-secondary { color: var(--apple-muted); }
+        .bg-card { background-color: var(--apple-card); }
+        .border-subtle { border: 1px solid var(--apple-border); }
+
         /* Feature Card */
         .feature-card {
-            background: #ffffff;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.02);
-            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            background: var(--apple-card);
+            box-shadow: var(--apple-shadow);
+            border: 1px solid var(--apple-border);
+            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
         }
         .feature-card:hover {
-            box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+            box-shadow: var(--apple-shadow-hover);
             transform: translateY(-4px);
         }
         
         /* Carousel Scrollbar Hide */
-        .hide-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .hide-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         /* Apple Style Typography */
-        .apple-title {
-            letter-spacing: -0.035em;
-        }
-        .apple-text {
-            letter-spacing: -0.015em;
-        }
+        .apple-title { letter-spacing: -0.035em; }
+        .apple-text { letter-spacing: -0.015em; }
         
-        /* Smooth fade text */
-        .text-fade {
-            background: linear-gradient(90deg, #1d1d1f 0%, #434343 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .text-flip-inner {
+            transition: transform 0.8s cubic-bezier(0.85, 0, 0.15, 1);
         }
     </style>
 </head>
-<body class="antialiased selection:bg-zinc-200">
+<body class="antialiased selection:bg-gray-200">
 
     <!-- Floating Navbar -->
-    <nav class="fixed top-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50 px-6 py-4 flex items-center justify-between transition-all duration-300">
+    <nav class="fixed top-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-subtle px-6 py-4 flex items-center justify-between transition-all duration-300">
         <!-- Logo -->
-        <a href="#home" class="flex items-center gap-2 text-zinc-900 font-bold text-xl apple-title cursor-pointer">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-zinc-900"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><line x1="12" y1="22" x2="12" y2="12"></line></svg>
+        <a href="#home" class="flex items-center gap-2 text-primary font-bold text-xl apple-title cursor-pointer">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><line x1="12" y1="22" x2="12" y2="12"></line></svg>
             <span>Klareo</span>
         </a>
 
         <!-- Desktop Nav Items -->
         <div class="hidden md:flex items-center gap-10">
-            <a href="#features" class="text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors apple-text">核心特色</a>
-            <a href="#capabilities" class="text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors apple-text">實力展示</a>
-            <a href="#cta" class="text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors apple-text">準備體驗</a>
+            <a href="#features" class="text-sm font-medium text-secondary hover:text-primary transition-colors apple-text">核心特色</a>
+            <a href="#capabilities" class="text-sm font-medium text-secondary hover:text-primary transition-colors apple-text">實力展示</a>
+            <a href="#cta" class="text-sm font-medium text-secondary hover:text-primary transition-colors apple-text">準備體驗</a>
         </div>
 
         <!-- Desktop Buttons -->
-        <div class="hidden md:flex items-center gap-4">
-            <button onclick="window.location.href='index.html'" class="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors apple-text">
+        <div class="hidden md:flex items-center gap-6">
+            <button onclick="window.location.href='index.html'" class="text-sm font-medium text-secondary hover:text-primary transition-colors apple-text">
                 登入
             </button>
-            <button onclick="sessionStorage.setItem('intro_seen', 'true'); window.location.href='index.html'" class="px-5 py-2 rounded-full text-sm font-medium text-white bg-zinc-900 hover:bg-zinc-800 transition-colors apple-text">
+            <button onclick="sessionStorage.setItem('intro_seen', 'true'); window.location.href='index.html'" class="px-5 py-2 rounded-full text-sm font-medium text-white bg-[#1d1d1f] hover:bg-[#333336] transition-colors apple-text">
                 開始使用
             </button>
         </div>
 
         <!-- Mobile Toggle -->
-        <button id="mobile-menu-toggle" class="md:hidden text-zinc-800 z-[60] relative">
+        <button id="mobile-menu-toggle" class="md:hidden text-primary z-[60] relative">
             <svg id="menu-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300"><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>
             <svg id="close-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden transition-transform duration-300"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
@@ -95,15 +95,15 @@
     <!-- Mobile Menu Overlay -->
     <div id="mobile-menu" class="fixed inset-0 z-40 bg-white/95 backdrop-blur-2xl flex-col pt-24 px-8 hidden opacity-0 transition-opacity duration-300">
         <div class="flex flex-col gap-8 text-left">
-            <a href="#features" class="mobile-link text-3xl font-bold text-zinc-800 apple-title border-b border-zinc-100 pb-4">核心特色</a>
-            <a href="#capabilities" class="mobile-link text-3xl font-bold text-zinc-800 apple-title border-b border-zinc-100 pb-4">實力展示</a>
-            <a href="#cta" class="mobile-link text-3xl font-bold text-zinc-800 apple-title border-b border-zinc-100 pb-4">準備體驗</a>
+            <a href="#features" class="mobile-link text-3xl font-bold text-primary apple-title border-b border-subtle pb-4">核心特色</a>
+            <a href="#capabilities" class="mobile-link text-3xl font-bold text-primary apple-title border-b border-subtle pb-4">實力展示</a>
+            <a href="#cta" class="mobile-link text-3xl font-bold text-primary apple-title border-b border-subtle pb-4">準備體驗</a>
         </div>
         <div class="flex flex-col gap-4 mt-auto mb-10">
-            <button onclick="window.location.href='index.html'" class="w-full py-4 rounded-2xl text-lg font-medium text-zinc-700 bg-zinc-100 active:bg-zinc-200 transition-colors apple-text">
+            <button onclick="window.location.href='index.html'" class="w-full py-4 rounded-2xl text-lg font-medium text-primary bg-gray-100 active:bg-gray-200 transition-colors apple-text">
                 登入
             </button>
-            <button onclick="sessionStorage.setItem('intro_seen', 'true'); window.location.href='index.html'" class="w-full py-4 rounded-2xl text-lg font-medium text-white bg-zinc-900 active:bg-zinc-800 transition-colors apple-text">
+            <button onclick="sessionStorage.setItem('intro_seen', 'true'); window.location.href='index.html'" class="w-full py-4 rounded-2xl text-lg font-medium text-white bg-[#1d1d1f] active:bg-[#333336] transition-colors apple-text">
                 開始使用
             </button>
         </div>
@@ -113,12 +113,12 @@
     <div id="home" class="hero-scroll-wrapper relative h-[120vh] w-full pt-20">
         <div class="sticky top-0 h-screen w-full flex flex-col items-center justify-center pt-24 md:pt-32" style="perspective: 1500px;">
             
-            <div class="hero-scroll-title text-center mb-8 md:mb-12 transition-transform duration-75 will-change-transform z-20 px-4">
-                <h1 class="text-5xl md:text-[6rem] lg:text-[7rem] font-bold text-zinc-900 apple-title leading-none pb-2">
+            <div class="hero-scroll-title text-center mb-10 md:mb-14 transition-transform duration-75 will-change-transform z-20 px-4">
+                <h1 class="text-6xl md:text-[7rem] lg:text-[8rem] font-bold text-primary apple-title leading-none pb-2">
                     Magic Eraser
                 </h1>
-                <p class="text-xl md:text-3xl text-zinc-500 font-medium mt-4 apple-text text-balance">
-                    Unleash the power to remove anything. Instantly.
+                <p class="text-2xl md:text-3xl text-secondary font-medium mt-6 apple-text text-balance">
+                    The power to remove anything. Instantly.
                 </p>
             </div>
 
@@ -128,21 +128,21 @@
             </div>
             
             <!-- Scroll indicator -->
-            <div class="hero-scroll-indicator absolute bottom-8 left-1/2 -translate-x-1/2 text-zinc-400 transition-opacity duration-300">
+            <div class="hero-scroll-indicator absolute bottom-8 left-1/2 -translate-x-1/2 text-secondary transition-opacity duration-500">
                 <p class="text-xs font-semibold tracking-widest uppercase mb-2 text-center apple-text">Scroll</p>
-                <div class="w-px h-12 bg-gradient-to-b from-zinc-400 to-transparent mx-auto"></div>
+                <div class="w-px h-12 bg-gradient-to-b from-gray-400 to-transparent mx-auto"></div>
             </div>
         </div>
     </div>
 
     <!-- Features Section -->
-    <div id="features" class="w-full py-32 px-4 md:px-8 max-w-7xl mx-auto">
+    <div id="features" class="w-full py-40 px-6 md:px-12 max-w-[85rem] mx-auto">
         
         <!-- Clean Integrated Title with Text Flip -->
-        <h2 class="apple-title text-4xl md:text-6xl lg:text-7xl font-bold text-zinc-900 mb-20 text-center md:text-left text-balance leading-tight">
+        <h2 class="apple-title text-5xl md:text-6xl lg:text-7xl font-bold text-primary mb-24 text-center md:text-left text-balance leading-tight">
             影像處理，<br class="md:hidden" />從未如此 
-            <span class="text-flip-container inline-flex flex-col h-[1.1em] overflow-hidden align-bottom text-zinc-400 font-medium">
-                <span class="text-flip-inner transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]" style="transform: translateY(0%);">
+            <span class="text-flip-container inline-flex flex-col h-[1.1em] overflow-hidden align-bottom text-[#86868b] font-medium">
+                <span class="text-flip-inner" style="transform: translateY(0%);">
                     <span class="block h-[1.1em] leading-tight">簡單。</span>
                     <span class="block h-[1.1em] leading-tight">快速。</span>
                     <span class="block h-[1.1em] leading-tight">專業。</span>
@@ -152,48 +152,48 @@
         </h2>
 
         <!-- Cohesive Clean Card Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
             
             <!-- Card 1 -->
-            <div class="feature-card col-span-1 lg:col-span-2 rounded-[2rem] p-10 md:p-14 flex flex-col justify-between">
+            <div class="feature-card col-span-1 lg:col-span-2 rounded-[2rem] p-12 md:p-16 flex flex-col justify-between">
                 <div>
-                    <div class="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center mb-6">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-zinc-700"><path d="M12 2l10 6.5-10 6.5-10-6.5z"/><path d="M12 22l10-6.5-10-6.5-10 6.5z"/></svg>
+                    <div class="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-8 text-primary">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l10 6.5-10 6.5-10-6.5z"/><path d="M12 22l10-6.5-10-6.5-10 6.5z"/></svg>
                     </div>
-                    <h3 class="text-3xl md:text-4xl font-bold text-zinc-900 apple-title mb-4">
+                    <h3 class="text-3xl md:text-4xl font-bold text-primary apple-title mb-6">
                         一鍵去除雜亂背景，凸顯主體。
                     </h3>
-                    <p class="text-lg text-zinc-500 apple-text leading-relaxed max-w-xl">
+                    <p class="text-xl text-secondary apple-text leading-relaxed max-w-xl">
                         Klareo 1 Flash 採用最新一代 AI 演算法，能以像素級別精準識別並消除圖片中不需要的元素，讓您的影像乾淨無瑕。
                     </p>
                 </div>
             </div>
 
             <!-- Card 2 -->
-            <div class="feature-card col-span-1 rounded-[2rem] p-10 md:p-14 flex flex-col justify-between">
+            <div class="feature-card col-span-1 rounded-[2rem] p-12 md:p-16 flex flex-col justify-between">
                 <div>
-                    <div class="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center mb-6">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-zinc-700"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <div class="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-8 text-primary">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                     </div>
-                    <h3 class="text-3xl md:text-4xl font-bold text-zinc-900 apple-title mb-4">
+                    <h3 class="text-3xl md:text-4xl font-bold text-primary apple-title mb-6">
                         本地運算，<br/>極致效率。
                     </h3>
-                    <p class="text-lg text-zinc-500 apple-text leading-relaxed">
+                    <p class="text-xl text-secondary apple-text leading-relaxed">
                         無須等待漫長的雲端上傳與下載。運用強大的邊緣運算，在設備上即刻獲得完美結果。
                     </p>
                 </div>
             </div>
 
             <!-- Card 3 -->
-            <div class="feature-card col-span-1 lg:col-span-3 rounded-[2rem] p-10 md:p-14 flex flex-col justify-between">
+            <div class="feature-card col-span-1 lg:col-span-3 rounded-[2rem] p-12 md:p-16 flex flex-col justify-between">
                 <div>
-                    <div class="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center mb-6">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-zinc-700"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    <div class="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-8 text-primary">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                     </div>
-                    <h3 class="text-3xl md:text-4xl font-bold text-zinc-900 apple-title mb-4">
+                    <h3 class="text-3xl md:text-4xl font-bold text-primary apple-title mb-6">
                         高效能處理，為專業與日常需求打造。
                     </h3>
-                    <p class="text-lg text-zinc-500 apple-text leading-relaxed max-w-3xl">
+                    <p class="text-xl text-secondary apple-text leading-relaxed max-w-3xl">
                         不僅速度飛快，更具備令人驚嘆的邊緣細節運算能力。徹底告別繁瑣的手動修圖，立即體驗最流暢的 AI 影像工作流程。
                     </p>
                 </div>
@@ -203,12 +203,12 @@
     </div>
 
     <!-- Carousel Section (Capabilities) -->
-    <div id="capabilities" class="w-full py-32 overflow-hidden">
+    <div id="capabilities" class="w-full py-40 overflow-hidden">
         
-        <h2 class="apple-title max-w-7xl px-4 md:px-8 mx-auto w-full text-4xl md:text-6xl lg:text-7xl font-bold text-zinc-900 mb-20 text-center md:text-left text-balance leading-tight">
+        <h2 class="apple-title max-w-[85rem] px-6 md:px-12 mx-auto w-full text-5xl md:text-6xl lg:text-7xl font-bold text-primary mb-24 text-center md:text-left text-balance leading-tight">
             親自體驗 
-            <span class="text-flip-container-2 inline-flex flex-col h-[1.1em] overflow-hidden align-bottom text-zinc-400 font-medium">
-                <span class="text-flip-inner-2 transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]" style="transform: translateY(0%);">
+            <span class="text-flip-container-2 inline-flex flex-col h-[1.1em] overflow-hidden align-bottom text-[#86868b] font-medium">
+                <span class="text-flip-inner-2 text-flip-inner" style="transform: translateY(0%);">
                     <span class="block h-[1.1em] leading-tight">AI 運算</span>
                     <span class="block h-[1.1em] leading-tight">邊緣科技</span>
                     <span class="block h-[1.1em] leading-tight">一鍵去背</span>
@@ -219,49 +219,49 @@
         </h2>
         
         <div class="carousel-container relative w-full">
-            <div class="flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory px-4 md:px-10 xl:px-[calc((100vw-80rem)/2)] pb-16 pt-4 hide-scrollbar" style="scroll-padding-left: 2rem;">
+            <div class="flex gap-8 overflow-x-auto snap-x snap-mandatory px-6 md:px-12 xl:px-[calc((100vw-85rem)/2)] pb-16 pt-4 hide-scrollbar" style="scroll-padding-left: 2rem;">
                 
                 <!-- Card 1 -->
-                <div class="carousel-card flex-shrink-0 w-[85vw] sm:w-[28rem] h-[40rem] rounded-[2rem] relative snap-start cursor-pointer group bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-500 flex flex-col overflow-hidden border border-zinc-100">
-                    <div class="w-full h-[65%] overflow-hidden bg-zinc-100 flex items-center justify-center p-4">
-                        <img src="carousel_img1.png" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700" alt="實力展示 1" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1593508512255-86ab42a8e620?q=80&w=3556&auto=format&fit=crop'; this.classList.remove('object-contain', 'p-4'); this.classList.add('object-cover');">
+                <div class="carousel-card flex-shrink-0 w-[85vw] sm:w-[32rem] h-[45rem] rounded-[2.5rem] relative snap-start cursor-pointer group bg-card border-subtle shadow-[0_8px_30px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] transition-all duration-500 flex flex-col overflow-hidden">
+                    <div class="w-full h-[65%] overflow-hidden bg-gray-50 flex items-center justify-center p-6 border-b border-subtle">
+                        <img src="carousel_img1.png" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]" alt="實力展示 1" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1593508512255-86ab42a8e620?q=80&w=3556&auto=format&fit=crop'; this.classList.remove('object-contain', 'p-6'); this.classList.add('object-cover');">
                     </div>
-                    <div class="w-full h-[35%] p-8 md:p-10 flex flex-col justify-center">
-                        <span class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-2">人工智慧</span>
-                        <h3 class="text-zinc-900 text-3xl font-bold leading-tight apple-title">AI 讓影像處理無所不能。</h3>
+                    <div class="w-full h-[35%] p-10 flex flex-col justify-center">
+                        <span class="text-secondary text-sm font-bold tracking-widest uppercase mb-3">人工智慧</span>
+                        <h3 class="text-primary text-3xl md:text-4xl font-bold leading-tight apple-title">AI 讓影像處理無所不能。</h3>
                     </div>
                 </div>
 
                 <!-- Card 2 -->
-                <div class="carousel-card flex-shrink-0 w-[85vw] sm:w-[28rem] h-[40rem] rounded-[2rem] relative snap-start cursor-pointer group bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-500 flex flex-col overflow-hidden border border-zinc-100">
-                    <div class="w-full h-[65%] overflow-hidden bg-zinc-100 flex items-center justify-center p-4">
-                        <img src="carousel_img2.png" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700" alt="實力展示 2" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1531554694128-c4c6665f59c2?q=80&w=3387&auto=format&fit=crop'; this.classList.remove('object-contain', 'p-4'); this.classList.add('object-cover');">
+                <div class="carousel-card flex-shrink-0 w-[85vw] sm:w-[32rem] h-[45rem] rounded-[2.5rem] relative snap-start cursor-pointer group bg-card border-subtle shadow-[0_8px_30px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] transition-all duration-500 flex flex-col overflow-hidden">
+                    <div class="w-full h-[65%] overflow-hidden bg-gray-50 flex items-center justify-center p-6 border-b border-subtle">
+                        <img src="carousel_img2.png" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]" alt="實力展示 2" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1531554694128-c4c6665f59c2?q=80&w=3387&auto=format&fit=crop'; this.classList.remove('object-contain', 'p-6'); this.classList.add('object-cover');">
                     </div>
-                    <div class="w-full h-[35%] p-8 md:p-10 flex flex-col justify-center">
-                        <span class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-2">生產力</span>
-                        <h3 class="text-zinc-900 text-3xl font-bold leading-tight apple-title">大幅提升您的工作效率。</h3>
+                    <div class="w-full h-[35%] p-10 flex flex-col justify-center">
+                        <span class="text-secondary text-sm font-bold tracking-widest uppercase mb-3">生產力</span>
+                        <h3 class="text-primary text-3xl md:text-4xl font-bold leading-tight apple-title">大幅提升您的工作效率。</h3>
                     </div>
                 </div>
 
                 <!-- Card 3 -->
-                <div class="carousel-card flex-shrink-0 w-[85vw] sm:w-[28rem] h-[40rem] rounded-[2rem] relative snap-start cursor-pointer group bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-500 flex flex-col overflow-hidden border border-zinc-100">
-                    <div class="w-full h-[65%] overflow-hidden bg-zinc-100 flex items-center justify-center p-4">
-                        <img src="carousel_img3.png" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700" alt="實力展示 3" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1713869791518-a770879e60dc?q=80&w=2333&auto=format&fit=crop'; this.classList.remove('object-contain', 'p-4'); this.classList.add('object-cover');">
+                <div class="carousel-card flex-shrink-0 w-[85vw] sm:w-[32rem] h-[45rem] rounded-[2.5rem] relative snap-start cursor-pointer group bg-card border-subtle shadow-[0_8px_30px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] transition-all duration-500 flex flex-col overflow-hidden">
+                    <div class="w-full h-[65%] overflow-hidden bg-gray-50 flex items-center justify-center p-6 border-b border-subtle">
+                        <img src="carousel_img3.png" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]" alt="實力展示 3" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1713869791518-a770879e60dc?q=80&w=2333&auto=format&fit=crop'; this.classList.remove('object-contain', 'p-6'); this.classList.add('object-cover');">
                     </div>
-                    <div class="w-full h-[35%] p-8 md:p-10 flex flex-col justify-center">
-                        <span class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-2">極致設計</span>
-                        <h3 class="text-zinc-900 text-3xl font-bold leading-tight apple-title">為專業創作者精心打造。</h3>
+                    <div class="w-full h-[35%] p-10 flex flex-col justify-center">
+                        <span class="text-secondary text-sm font-bold tracking-widest uppercase mb-3">極致設計</span>
+                        <h3 class="text-primary text-3xl md:text-4xl font-bold leading-tight apple-title">為專業創作者精心打造。</h3>
                     </div>
                 </div>
 
                 <!-- Card 4 -->
-                <div class="carousel-card flex-shrink-0 w-[85vw] sm:w-[28rem] h-[40rem] rounded-[2rem] relative snap-start cursor-pointer group bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-500 flex flex-col overflow-hidden border border-zinc-100">
-                    <div class="w-full h-[65%] overflow-hidden bg-zinc-100 flex items-center justify-center p-4">
-                        <img src="carousel_img4.png" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700" alt="實力展示 4" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1599202860130-f600f4948364?q=80&w=2515&auto=format&fit=crop'; this.classList.remove('object-contain', 'p-4'); this.classList.add('object-cover');">
+                <div class="carousel-card flex-shrink-0 w-[85vw] sm:w-[32rem] h-[45rem] rounded-[2.5rem] relative snap-start cursor-pointer group bg-card border-subtle shadow-[0_8px_30px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] transition-all duration-500 flex flex-col overflow-hidden">
+                    <div class="w-full h-[65%] overflow-hidden bg-gray-50 flex items-center justify-center p-6 border-b border-subtle">
+                        <img src="carousel_img4.png" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]" alt="實力展示 4" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1599202860130-f600f4948364?q=80&w=2515&auto=format&fit=crop'; this.classList.remove('object-contain', 'p-6'); this.classList.add('object-cover');">
                     </div>
-                    <div class="w-full h-[35%] p-8 md:p-10 flex flex-col justify-center">
-                        <span class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-2">效能表現</span>
-                        <h3 class="text-zinc-900 text-3xl font-bold leading-tight apple-title">如閃電般疾速的處理體驗。</h3>
+                    <div class="w-full h-[35%] p-10 flex flex-col justify-center">
+                        <span class="text-secondary text-sm font-bold tracking-widest uppercase mb-3">效能表現</span>
+                        <h3 class="text-primary text-3xl md:text-4xl font-bold leading-tight apple-title">如閃電般疾速的處理體驗。</h3>
                     </div>
                 </div>
 
@@ -270,10 +270,10 @@
     </div>
 
     <!-- Carousel Modal -->
-    <div id="carousel-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-zinc-900/40 backdrop-blur-md p-4 md:p-8 transition-opacity opacity-0 duration-300">
-        <div class="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[2rem] relative transform scale-95 transition-transform duration-300 shadow-2xl hide-scrollbar" id="carousel-modal-content">
-            <button id="close-modal" class="fixed top-6 right-6 bg-zinc-100/80 text-zinc-500 rounded-full p-3 z-[60] hover:bg-zinc-200 hover:text-zinc-900 transition-colors backdrop-blur-md shadow-sm">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    <div id="carousel-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-md p-6 md:p-12 transition-opacity opacity-0 duration-500">
+        <div class="bg-card w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] relative transform scale-95 transition-transform duration-500 cubic-bezier(0.25, 1, 0.5, 1) shadow-2xl hide-scrollbar border-subtle" id="carousel-modal-content">
+            <button id="close-modal" class="fixed top-8 right-8 bg-gray-100 text-secondary rounded-full p-4 z-[60] hover:bg-gray-200 hover:text-primary transition-colors backdrop-blur-md">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
             <div id="modal-inner">
                 <!-- Injected via JS -->
@@ -282,11 +282,11 @@
     </div>
 
     <!-- Footer / CTA Section -->
-    <div id="cta" class="py-32 w-full flex flex-col items-center justify-center relative overflow-hidden">
-        <h2 class="apple-title text-4xl md:text-5xl font-bold text-zinc-900 mb-10 text-center px-4">
+    <div id="cta" class="py-40 w-full flex flex-col items-center justify-center relative overflow-hidden">
+        <h2 class="apple-title text-5xl md:text-6xl font-bold text-primary mb-12 text-center px-4">
             準備好體驗了嗎？
         </h2>
-        <button onclick="sessionStorage.setItem('intro_seen', 'true'); window.location.href='index.html'" class="rounded-full bg-zinc-900 px-10 py-4 font-semibold text-white text-lg shadow-xl hover:shadow-2xl hover:bg-zinc-800 transition-all duration-300 active:scale-95">
+        <button onclick="sessionStorage.setItem('intro_seen', 'true'); window.location.href='index.html'" class="rounded-full bg-[#1d1d1f] px-12 py-5 font-semibold text-white text-xl shadow-lg hover:shadow-2xl hover:bg-[#333336] transition-all duration-300 active:scale-95">
             開始使用 Magic Eraser
         </button>
     </div>
@@ -336,9 +336,9 @@
         const modalInner = document.getElementById('modal-inner');
 
         const dummyContentHtml = `
-            <div class="p-8 md:p-14 bg-[#F5F5F7] rounded-[2rem] mt-8">
-                <p class="text-zinc-600 text-base md:text-xl leading-relaxed font-sans max-w-3xl mx-auto apple-text">
-                    <span class="font-bold text-zinc-900 block mb-4 text-xl md:text-2xl">
+            <div class="p-10 md:p-16 bg-[var(--apple-bg)] rounded-[2rem] mt-10">
+                <p class="text-secondary text-lg md:text-2xl leading-relaxed font-sans max-w-4xl mx-auto apple-text">
+                    <span class="font-bold text-primary block mb-4 text-2xl md:text-3xl">
                         化繁為簡的設計理念。
                     </span> 
                     體驗完全重新想像的工作流程，瞬間消除干擾元素。所有強大功能皆完美整合在您熟悉且易用的介面中。運用邊緣運算的極致效能，即刻見證令人驚嘆的去背成果。
@@ -357,12 +357,12 @@
                 const imgSrc = imgEl ? imgEl.src : '';
 
                 modalInner.innerHTML = `
-                    <div class="w-full h-[40vh] md:h-[55vh] bg-zinc-100 flex justify-center items-center rounded-t-[2rem] overflow-hidden">
-                        <img src="${imgSrc}" class="w-full h-full object-contain p-4 mix-blend-darken" onerror="this.classList.remove('object-contain','mix-blend-darken','p-4'); this.classList.add('object-cover');" />
+                    <div class="w-full h-[45vh] md:h-[60vh] bg-gray-50 flex justify-center items-center rounded-t-[2.5rem] overflow-hidden border-b border-subtle">
+                        <img src="${imgSrc}" class="w-full h-full object-contain p-6 mix-blend-darken" onerror="this.classList.remove('object-contain','mix-blend-darken','p-6'); this.classList.add('object-cover');" />
                     </div>
-                    <div class="p-8 md:p-16 bg-white">
-                        <span class="text-zinc-400 text-sm font-bold tracking-widest uppercase mb-3 block">${category}</span>
-                        <h3 class="text-zinc-900 text-4xl md:text-5xl font-bold mb-8 apple-title">${title}</h3>
+                    <div class="p-10 md:p-20 bg-card">
+                        <span class="text-secondary text-sm font-bold tracking-widest uppercase mb-4 block">${category}</span>
+                        <h3 class="text-primary text-5xl md:text-6xl font-bold mb-10 apple-title">${title}</h3>
                         ${dummyContentHtml}
                     </div>
                 `;
@@ -388,7 +388,7 @@
                 carouselModal.classList.add('hidden');
                 carouselModal.classList.remove('flex');
                 document.body.style.overflow = ''; 
-            }, 300);
+            }, 500); // Wait for transition
         };
 
         if (closeModal) closeModal.addEventListener('click', hideModal);
@@ -402,30 +402,45 @@
             setInterval(() => {
                 index = (index + 1) % count;
                 flipInner.style.transform = `translateY(-${index * (100 / count)}%)`;
-            }, 2500);
+            }, 3000);
         };
         
         initTextFlip('.text-flip-inner', 4);
         initTextFlip('.text-flip-inner-2', 4);
 
-        // --- Container Scroll Animation ---
+        // --- Container Scroll Animation (requestAnimationFrame) ---
         const scrollWrapper = document.querySelector('.hero-scroll-wrapper');
         const scrollCard = document.querySelector('.hero-scroll-card');
         const scrollTitle = document.querySelector('.hero-scroll-title');
         const scrollIndicator = document.querySelector('.hero-scroll-indicator');
 
         if (scrollWrapper && scrollCard && scrollTitle) {
+            let ticking = false;
+
             window.addEventListener('scroll', () => {
+                if (!ticking) {
+                    window.requestAnimationFrame(() => {
+                        updateScrollAnimation();
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            }, { passive: true });
+
+            function updateScrollAnimation() {
                 const rect = scrollWrapper.getBoundingClientRect();
                 const maxScroll = scrollWrapper.offsetHeight - window.innerHeight;
                 let progress = -rect.top / maxScroll;
                 
                 progress = Math.max(0, Math.min(1, progress));
                 
-                if (progress > 0.05) scrollIndicator.classList.add('opacity-0');
-                else scrollIndicator.classList.remove('opacity-0');
+                if (progress > 0.02) {
+                    scrollIndicator.classList.add('opacity-0');
+                } else {
+                    scrollIndicator.classList.remove('opacity-0');
+                }
 
-                // Smooth mapping
+                // Map progress to transformations seamlessly
                 const rotateX = 20 - (progress * 20);
                 const scale = 0.92 + (progress * 0.08);
                 const translateY = 30 - (progress * 30);
@@ -435,7 +450,10 @@
                 const titleTranslateY = -(progress * 30);
                 const titleScale = 1 - (progress * 0.05);
                 scrollTitle.style.transform = `translateY(${titleTranslateY}px) scale(${titleScale})`;
-            });
+            }
+            
+            // Initial call
+            updateScrollAnimation();
         }
     </script>
 </body>
