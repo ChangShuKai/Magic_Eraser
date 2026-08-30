@@ -11,5 +11,3 @@ requirements-desktop.txt
 local_server.py
 main.py
 installer_beautiful.py
-*.png
-*.ico
