@@ -248,7 +248,7 @@ function openAuthModal(mode) {
 
     authDivider.style.display = isGoogleCompleteReg ? 'none' : 'flex';
     googleSignInBtn.style.display = isGoogleCompleteReg ? 'none' : 'flex';
-    document.querySelector('.auth-switch').style.display = isGoogleCompleteReg ? 'none' : 'block';
+    document.querySelector('.auth-bottom-switch').style.display = isGoogleCompleteReg ? 'none' : 'block';
 
     authSwitchText.innerText = isLoginMode ? '還沒有帳號？ ' : '已經有帳號？ ';
     authSwitchLink.innerText = isLoginMode ? 'Sign up' : 'Sign in';
@@ -479,7 +479,7 @@ registerForm.addEventListener('submit', async (e) => {
             verifyEmailScreen.style.display = 'block';
             authDivider.style.display = 'none';
             googleSignInBtn.style.display = 'none';
-            document.querySelector('.auth-switch').style.display = 'none';
+            document.querySelector('.auth-bottom-switch').style.display = 'none';
         }
     } catch (error) {
         authError.innerText = error.message;
