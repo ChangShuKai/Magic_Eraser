@@ -531,58 +531,38 @@ const step1Actions = document.getElementById('step1Actions');
 const restartBtn = document.getElementById('restartBtn');
 
 function navigateTo(path) {
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const step3 = document.getElementById('step3');
+    
+    if (step1) step1.style.display = 'none';
+    if (step2) step2.style.display = 'none';
+    if (step3) step3.style.display = 'none';
+
     if (path === '/process') {
-        window.location.href = 'process.html';
+        if (step2) step2.style.display = 'block';
     } else if (path === '/download') {
-        window.location.href = 'download.html';
+        if (step3) step3.style.display = 'block';
     } else {
-        window.location.href = 'index.html';
+        if (step1) step1.style.display = 'block';
     }
 }
 
 function handleRoute() {
-    // Determine which page we are on
-    const path = window.location.pathname;
-    const isProcess = path.includes('process') && !path.includes('index');
-    const isDownload = path.includes('download');
+    navigateTo('/');
     
-    // Load state from localforage
+    // Load state from localforage if needed, though for a real SPA we just start at '/'
     localforage.getItem('magic_eraser_files').then((savedFiles) => {
         if (savedFiles && savedFiles.length > 0) {
             selectedFiles = savedFiles;
-            
-            // Recreate Object URLs from blobs
             selectedFiles.forEach(f => {
                 if (f.resultBlob && !f.resultUrl) {
                     f.resultUrl = URL.createObjectURL(f.resultBlob);
                 }
             });
-            
-            if (fileCountSpan) fileCountSpan.innerText = selectedFiles.length;
-            
-            if (isProcess) {
-                // Populate preview gallery for process page
-                previewGallery.innerHTML = '';
-                selectedFiles.forEach(fileObj => {
-                    createPreviewCard(fileObj);
-                });
-                processBtn.disabled = false;
-            } else if (isDownload) {
-                // Populate preview gallery for download page
-                previewGallery.innerHTML = '';
-                selectedFiles.forEach(fileObj => {
-                    createPreviewCard(fileObj);
-                });
-                downloadAllBtn.style.display = 'inline-flex';
-            }
-        } else {
-            // No files, redirect to index if not on index
-            if (isProcess || isDownload) {
-                window.location.href = 'index.html';
-            }
+            const fileCountSpan = document.getElementById('fileCount');
+            if(fileCountSpan) fileCountSpan.innerText = selectedFiles.length;
         }
-    }).catch((err) => {
-        console.error('Error loading files:', err);
     });
 }
 
