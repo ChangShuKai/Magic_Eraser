@@ -286,9 +286,20 @@
         <h2 class="apple-title text-5xl md:text-6xl font-bold text-primary mb-12 text-center px-4">
             準備好體驗了嗎？
         </h2>
-        <button onclick="sessionStorage.setItem('intro_seen', 'true'); window.location.href='index.html'" class="rounded-full bg-[#1d1d1f] px-12 py-5 font-semibold text-white text-xl shadow-lg hover:shadow-2xl hover:bg-[#333336] transition-all duration-300 active:scale-95">
-            開始使用 Magic Eraser
-        </button>
+        <div class="flex justify-center">
+            <div class="relative w-fit p-2 rounded-full mx-auto overflow-hidden">
+                <!-- Gradient Background -->
+                <div class="absolute inset-0 z-0" style="background: linear-gradient(135deg, rgb(255, 100, 150), rgb(100, 150, 255), rgb(255, 200, 100));"></div>
+                
+                <!-- Noise Overlay -->
+                <div class="absolute inset-0 z-10 opacity-30 mix-blend-overlay pointer-events-none" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%221.5%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E');"></div>
+                
+                <!-- Button -->
+                <button onclick="sessionStorage.setItem('intro_seen', 'true'); window.location.href='index.html'" class="relative z-20 h-full w-full cursor-pointer rounded-full bg-gradient-to-r from-neutral-100 via-neutral-100 to-white px-10 py-4 text-black font-semibold text-xl shadow-[0px_2px_0px_0px_#f9fafb_inset,0px_0.5px_1px_0px_#a3a3a3] transition-all duration-100 active:scale-[0.98]">
+                    開始使用 Magic Eraser &rarr;
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->
