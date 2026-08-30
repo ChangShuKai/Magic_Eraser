@@ -1112,7 +1112,7 @@ window.checkPasswordStrength = function(pwd) {
     if (!container) return;
     
     // Show container when user starts typing
-    const pwdInput = document.getElementById('registerPassword');
+    
     if (pwd.length > 0) {
         container.style.display = 'block';
     } else {
