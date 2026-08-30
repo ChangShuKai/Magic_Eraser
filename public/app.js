@@ -239,7 +239,7 @@ async function updateAuthUI(user) {
 function openAuthModal(mode) {
     isLoginMode = mode === 'login';
     isSmsMode = false;
-    authTitle.innerText = isLoginMode ? '登入' : (isGoogleCompleteReg ? '完成註冊' : '註冊');
+    authTitle.innerText = isLoginMode ? 'Welcome back!' : (isGoogleCompleteReg ? 'Complete Sign up' : 'Create an account');
 
     loginForm.style.display = isLoginMode ? 'flex' : 'none';
     smsLoginForm.style.display = 'none';
@@ -251,7 +251,7 @@ function openAuthModal(mode) {
     document.querySelector('.auth-switch').style.display = isGoogleCompleteReg ? 'none' : 'block';
 
     authSwitchText.innerText = isLoginMode ? '還沒有帳號？ ' : '已經有帳號？ ';
-    authSwitchLink.innerText = isLoginMode ? '註冊' : '登入';
+    authSwitchLink.innerText = isLoginMode ? 'Sign up' : 'Sign in';
     authError.style.display = 'none';
 
     // Reset SMS forms
@@ -285,7 +285,7 @@ switchToSmsBtn.addEventListener('click', (e) => {
     isSmsMode = true;
     loginForm.style.display = 'none';
     smsLoginForm.style.display = 'flex';
-    authTitle.innerText = '手機簡訊登入';
+    authTitle.innerText = 'SMS Sign in';
 });
 
 switchToEmailLoginBtn.addEventListener('click', (e) => {
@@ -293,7 +293,7 @@ switchToEmailLoginBtn.addEventListener('click', (e) => {
     isSmsMode = false;
     smsLoginForm.style.display = 'none';
     loginForm.style.display = 'flex';
-    authTitle.innerText = '登入';
+    authTitle.innerText = 'Welcome back!';
 });
 
 // Google Sign-In
@@ -1082,3 +1082,71 @@ window.addEventListener('scroll', () => {
         }
     }
 });
+
+// --- NEW AUTH MODAL LOGIC ---
+window.togglePasswordVisibility = function(inputId, btnElement) {
+    const input = document.getElementById(inputId);
+    const eyeIcon = btnElement.querySelector('.eye-icon');
+    const eyeOffIcon = btnElement.querySelector('.eye-off-icon');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (eyeIcon) eyeIcon.classList.add('hidden');
+        if (eyeOffIcon) eyeOffIcon.classList.remove('hidden');
+        btnElement.setAttribute('aria-label', 'Hide password');
+    } else {
+        input.type = 'password';
+        if (eyeIcon) eyeIcon.classList.remove('hidden');
+        if (eyeOffIcon) eyeOffIcon.classList.add('hidden');
+        btnElement.setAttribute('aria-label', 'Show password');
+    }
+};
+
+window.checkPasswordStrength = function(pwd) {
+    const reqLen = document.getElementById('req-len');
+    const reqNum = document.getElementById('req-num');
+    const barFill = document.getElementById('pwdBarFill');
+    const desc = document.getElementById('pwdDesc');
+    const container = document.getElementById('pwdStrengthContainer');
+    
+    if (!container) return;
+    
+    // Show container when user starts typing
+    if (pwd.length > 0) {
+        container.style.display = 'block';
+    } else {
+        container.style.display = 'none';
+        return;
+    }
+
+    let score = 0;
+    
+    if (pwd.length >= 8) {
+        reqLen.classList.add('met');
+        score++;
+    } else {
+        reqLen.classList.remove('met');
+    }
+    
+    if (/[0-9]/.test(pwd)) {
+        reqNum.classList.add('met');
+        score++;
+    } else {
+        reqNum.classList.remove('met');
+    }
+    
+    // Update bar
+    const percent = (score / 2) * 100;
+    barFill.style.width = percent + '%';
+    
+    if (score === 0) {
+        barFill.style.backgroundColor = '#ef4444'; // red
+        desc.innerText = 'Weak password. Must contain:';
+    } else if (score === 1) {
+        barFill.style.backgroundColor = '#f59e0b'; // orange
+        desc.innerText = 'Medium password. Must contain:';
+    } else if (score === 2) {
+        barFill.style.backgroundColor = '#10b981'; // green
+        desc.innerText = 'Strong password. Must contain:';
+    }
+};
