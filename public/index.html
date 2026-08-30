@@ -83,8 +83,8 @@
                                 <path d="M14 14h6v6h-6z"></path>
                             </svg>
                         </div>
-                        <h2 id="authTitle" class="auth-title-main">Welcome back!</h2>
-                        <p class="auth-subtitle">We empower developers and technical teams to create, simulate, and manage AI-driven workflows visually</p>
+                        <h2 id="authTitle" class="auth-title-main">歡迎回來！</h2>
+                        
                     </div>
 
                     <div id="authError" style="color: var(--danger); font-size: 0.9rem; margin-bottom: 15px; display: none;"></div>
@@ -92,14 +92,14 @@
                     <!-- Login Form -->
                     <form id="loginForm" class="auth-form-new">
                         <div class="input-group-new">
-                            <label for="loginEmail">Email</label>
-                            <input type="email" id="loginEmail" class="input-new" placeholder="youremail@yourdomain.com" required>
+                            <label for="loginEmail">電子郵件</label>
+                            <input type="email" id="loginEmail" class="input-new" placeholder="your@email.com" required>
                         </div>
                         
                         <div class="input-group-new">
-                            <label for="loginPassword">Password</label>
+                            <label for="loginPassword">密碼</label>
                             <div class="input-relative">
-                                <input type="password" id="loginPassword" class="input-new pr-10" placeholder="Create a password" required>
+                                <input type="password" id="loginPassword" class="input-new pr-10" placeholder="輸入密碼" required>
                                 <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('loginPassword', this)" aria-label="Show password">
                                     <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                     <svg class="eye-off-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
@@ -107,7 +107,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn-new sign-in-btn">Sign in</button>
+                        <button type="submit" class="btn-new sign-in-btn">登入</button>
                         
                         <div class="auth-switch-link" style="margin-top: 10px; text-align: center;">
                             <a href="#" id="switchToSmsBtn" style="font-size: 0.9rem; color: var(--text-muted); font-weight:500;">改用手機簡訊登入</a>
@@ -146,15 +146,15 @@
                     <form id="registerForm" class="auth-form-new" style="display: none;">
                         <div class="input-group-new">
                             <label for="registerEmail">
-                                Email <span class="text-destructive">*</span>
+                                電子郵件 <span class="text-destructive">*</span>
                             </label>
-                            <input type="email" id="registerEmail" class="input-new" placeholder="Email" required>
+                            <input type="email" id="registerEmail" class="input-new" placeholder="電子郵件" required>
                         </div>
 
                         <div class="input-group-new">
-                            <label for="registerPassword">Password</label>
+                            <label for="registerPassword">密碼</label>
                             <div class="input-relative">
-                                <input type="password" id="registerPassword" class="input-new pr-10" placeholder="Password" required oninput="checkPasswordStrength(this.value)">
+                                <input type="password" id="registerPassword" class="input-new pr-10" placeholder="密碼" required oninput="checkPasswordStrength(this.value)">
                                 <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('registerPassword', this)" aria-label="Show password">
                                     <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                     <svg class="eye-off-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
@@ -167,17 +167,17 @@
                             <div class="pwd-bar-bg" role="progressbar" aria-valuemin="0" aria-valuemax="2" aria-valuenow="0">
                                 <div class="pwd-bar-fill" id="pwdBarFill"></div>
                             </div>
-                            <p class="pwd-desc" id="pwdDesc">Enter a password. Must contain:</p>
+                            <p class="pwd-desc" id="pwdDesc">請輸入密碼。密碼必須包含：</p>
                             <ul class="pwd-req-list">
                                 <li id="req-len" class="req-item">
                                     <svg class="req-icon req-cross" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                     <svg class="req-icon req-check hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                                    <span>At least 8 characters</span>
+                                    <span>至少 8 個字符</span>
                                 </li>
                                 <li id="req-num" class="req-item">
                                     <svg class="req-icon req-cross" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                     <svg class="req-icon req-check hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                                    <span>At least 1 number</span>
+                                    <span>至少有 1 個數字</span>
                                 </li>
                             </ul>
                         </div>
@@ -229,7 +229,7 @@
                             </select>
                         </div>
 
-                        <button type="submit" id="registerSubmitBtn" class="btn-new sign-in-btn">Sign up</button>
+                        <button type="submit" id="registerSubmitBtn" class="btn-new sign-in-btn">註冊</button>
                     </form>
 
                     <!-- Verification Sent Screen -->
@@ -262,11 +262,11 @@
                             <path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24c0 3.55.85 6.91 2.34 9.88l7.35-5.7z"></path>
                             <path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"></path>
                         </svg>
-                        <span style="flex:1; text-align:center;">Sign in with Google</span>
+                        <span style="flex:1; text-align:center;">使用 Google 登入</span>
                     </button>
 
                     <div class="auth-bottom-switch">
-                        <span id="authSwitchText">Already have an account? </span>
+                        <span id="authSwitchText">已經有帳號？ </span>
                         <a href="#" id="authSwitchLink" style="color: #ea580c; font-weight: 500; text-decoration: none;">Sign up</a>
                     </div>
                 </div>

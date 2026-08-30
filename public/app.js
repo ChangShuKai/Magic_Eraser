@@ -239,7 +239,7 @@ async function updateAuthUI(user) {
 function openAuthModal(mode) {
     isLoginMode = mode === 'login';
     isSmsMode = false;
-    authTitle.innerText = isLoginMode ? 'Welcome back!' : (isGoogleCompleteReg ? 'Complete Sign up' : 'Create an account');
+    authTitle.innerText = isLoginMode ? '歡迎回來！' : (isGoogleCompleteReg ? '完成註冊' : '建立帳號');
 
     loginForm.style.display = isLoginMode ? 'flex' : 'none';
     smsLoginForm.style.display = 'none';
@@ -251,7 +251,7 @@ function openAuthModal(mode) {
     document.querySelector('.auth-bottom-switch').style.display = isGoogleCompleteReg ? 'none' : 'block';
 
     authSwitchText.innerText = isLoginMode ? '還沒有帳號？ ' : '已經有帳號？ ';
-    authSwitchLink.innerText = isLoginMode ? 'Sign up' : 'Sign in';
+    authSwitchLink.innerText = isLoginMode ? '註冊' : '登入';
     authError.style.display = 'none';
 
     // Reset SMS forms
@@ -293,7 +293,7 @@ switchToEmailLoginBtn.addEventListener('click', (e) => {
     isSmsMode = false;
     smsLoginForm.style.display = 'none';
     loginForm.style.display = 'flex';
-    authTitle.innerText = 'Welcome back!';
+    authTitle.innerText = '歡迎回來！';
 });
 
 // Google Sign-In
@@ -1112,10 +1112,12 @@ window.checkPasswordStrength = function(pwd) {
     if (!container) return;
     
     // Show container when user starts typing
+    const pwdInput = document.getElementById('registerPassword');
     if (pwd.length > 0) {
         container.style.display = 'block';
     } else {
         container.style.display = 'none';
+        pwdInput.style.borderColor = ''; // reset border
         return;
     }
 
@@ -1139,14 +1141,22 @@ window.checkPasswordStrength = function(pwd) {
     const percent = (score / 2) * 100;
     barFill.style.width = percent + '%';
     
+    const pwdInput = document.getElementById('registerPassword');
     if (score === 0) {
         barFill.style.backgroundColor = '#ef4444'; // red
-        desc.innerText = 'Weak password. Must contain:';
+        pwdInput.style.borderColor = '#ef4444';
+        desc.innerText = '密碼強度弱。密碼必須包含：';
     } else if (score === 1) {
         barFill.style.backgroundColor = '#f59e0b'; // orange
-        desc.innerText = 'Medium password. Must contain:';
+        pwdInput.style.borderColor = '#f59e0b';
+        desc.innerText = '密碼強度中等。密碼必須包含：';
     } else if (score === 2) {
         barFill.style.backgroundColor = '#10b981'; // green
-        desc.innerText = 'Strong password. Must contain:';
+        pwdInput.style.borderColor = '#10b981';
+        desc.innerText = '密碼強度強。密碼必須包含：';
+    }
+    
+    if (pwd.length === 0) {
+        pwdInput.style.borderColor = ''; // reset
     }
 };
