@@ -5,12 +5,16 @@
       "destination": "https://magic-eraser-34780901980.asia-east1.run.app/api/index"
     },
     {
+      "source": "/api/admin_server/(.*)",
+      "destination": "/api/admin_server"
+    },
+    {
       "source": "/admin",
-      "destination": "/public/startbootstrap-grayscale-gh-pages/startbootstrap-grayscale-gh-pages/index.html"
+      "destination": "/startbootstrap-grayscale-gh-pages/startbootstrap-grayscale-gh-pages/index.html"
     },
     {
       "source": "/admin/(.*)",
-      "destination": "/public/startbootstrap-grayscale-gh-pages/startbootstrap-grayscale-gh-pages/$1"
+      "destination": "/startbootstrap-grayscale-gh-pages/startbootstrap-grayscale-gh-pages/$1"
     }
   ],
   "cleanUrls": true
