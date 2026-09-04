@@ -3,6 +3,14 @@
     {
       "source": "/api-proxy/clean",
       "destination": "https://magic-eraser-34780901980.asia-east1.run.app/api/index"
+    },
+    {
+      "source": "/admin",
+      "destination": "/public/startbootstrap-grayscale-gh-pages/startbootstrap-grayscale-gh-pages/index.html"
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": "/public/startbootstrap-grayscale-gh-pages/startbootstrap-grayscale-gh-pages/$1"
     }
   ],
   "cleanUrls": true
