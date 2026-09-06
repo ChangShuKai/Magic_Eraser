@@ -109,7 +109,7 @@ const regPhone = document.getElementById('regPhone');
 const phoneError = document.getElementById('phoneError');
 function validatePhone() {
     const val = regPhone.value.trim();
-    const regex = /^(09\d{8}|9\d{8})$/;;
+    const regex = /^(09\d{8}|9\d{8})$/;
     if (!regex.test(val)) {
         phoneError.style.display = 'block';
         return false;
@@ -301,7 +301,7 @@ googleSignInBtn.addEventListener('click', async () => {
     if (!supabaseClient) return alert("Supabase 無法載入！");
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.href }
+        options: { redirectTo: window.location.origin + window.location.pathname }
     });
     if (error) {
         authError.innerText = error.message;
@@ -551,19 +551,14 @@ function navigateTo(path) {
 function handleRoute() {
     navigateTo('/');
     
-    // Load state from localforage if needed, though for a real SPA we just start at '/'
-    localforage.getItem('magic_eraser_files').then((savedFiles) => {
-        if (savedFiles && savedFiles.length > 0) {
-            selectedFiles = savedFiles;
-            selectedFiles.forEach(f => {
-                if (f.resultBlob && !f.resultUrl) {
-                    f.resultUrl = URL.createObjectURL(f.resultBlob);
-                }
-            });
+    // File objects cannot be persisted in localforage (IndexedDB can't serialize File/Blob).
+    // We only restore lightweight metadata; users must re-upload to process again. (#14, #15)
+    localforage.getItem('magic_eraser_files_meta').then((savedMeta) => {
+        if (savedMeta && savedMeta.length > 0) {
             const fileCountSpan = document.getElementById('fileCount');
-            if(fileCountSpan) fileCountSpan.innerText = selectedFiles.length;
+            if (fileCountSpan) fileCountSpan.innerText = savedMeta.length;
         }
-    });
+    }).catch(console.error);
 }
 
 if (goToStep2Btn) {
@@ -581,6 +576,8 @@ if (goToStep2Btn) {
         await new Promise(r => setTimeout(r, 600));
         
         // Navigate
+        // Reset button state for next usage (#6)
+        goToStep2Btn.classList.remove('loading', 'success');
         navigateTo('/process');
     });
 }
@@ -610,6 +607,8 @@ if (restartBtn) {
                 progressBar.classList.remove('progress-indeterminate');
             }
         }
+        // Reset goToStep2 button visual state (#7)
+        if (goToStep2Btn) goToStep2Btn.classList.remove('loading', 'success');
         navigateTo('/');
     });
 }
@@ -696,8 +695,14 @@ function handleFiles(files) {
     // reset input value so you can select the same files again
     fileInput.value = '';
     
-    // Save to localforage
-    localforage.setItem('magic_eraser_files', selectedFiles).catch(console.error);
+    // Save metadata to localforage -- File objects are NOT serializable in IndexedDB (#14)
+    const serializableMeta = selectedFiles.map(f => ({
+        id: f.id,
+        name: f.file ? f.file.name : (f.name || ''),
+        size: f.file ? f.file.size : (f.size || 0),
+        status: f.status || 'pending'
+    }));
+    localforage.setItem('magic_eraser_files_meta', serializableMeta).catch(console.error);
 }
 
 function createPreviewCard(fileObj) {
@@ -800,7 +805,7 @@ if (processBtn) processBtn.addEventListener('click', async () => {
         alert("請先登入，才能使用去手寫功能！");
         // 觸發顯示 Auth Modal (假設有 openAuthModal() 或類似機制，先直接打開 Modal)
         const authModal = document.getElementById('authModal');
-        if (authModal) authModal.style.display = 'block';
+        if (authModal) authModal.style.display = 'flex';
         return;
     }
     const token = session.access_token;
@@ -981,10 +986,16 @@ if (downloadAllBtn) downloadAllBtn.addEventListener('click', async () => {
     for (let i = 0; i < successfulFiles.length; i++) {
         const fileObj = successfulFiles[i];
         try {
-            const response = await fetch(fileObj.resultUrl);
-            const blob = await response.blob();
-            zip.file(`erased_${fileObj.file.name}`, blob);
-            hasFiles = true;
+            // Directly use the already-downloaded blob instead of re-fetching (#20)
+            if (fileObj.resultBlob) {
+                zip.file(`erased_${fileObj.file.name}`, fileObj.resultBlob);
+                hasFiles = true;
+            } else if (fileObj.resultUrl) {
+                const response = await fetch(fileObj.resultUrl);
+                const blob = await response.blob();
+                zip.file(`erased_${fileObj.file.name}`, blob);
+                hasFiles = true;
+            }
         } catch (e) {
             console.error("Error zipping file:", e);
         }
@@ -1089,16 +1100,17 @@ window.checkPasswordStrength = function(pwd) {
     const barFill = document.getElementById('pwdBarFill');
     const desc = document.getElementById('pwdDesc');
     const container = document.getElementById('pwdStrengthContainer');
+    // Declare pwdInput at top to avoid ReferenceError in else branch (#1)
+    const pwdInput = document.getElementById('registerPassword');
     
     if (!container) return;
     
     // Show container when user starts typing
-    
     if (pwd.length > 0) {
         container.style.display = 'block';
     } else {
         container.style.display = 'none';
-        pwdInput.style.borderColor = ''; // reset border
+        if (pwdInput) pwdInput.style.borderColor = ''; // reset border (#1)
         return;
     }
 
@@ -1122,7 +1134,6 @@ window.checkPasswordStrength = function(pwd) {
     const percent = (score / 2) * 100;
     barFill.style.width = percent + '%';
     
-    const pwdInput = document.getElementById('registerPassword');
     if (score === 0) {
         barFill.style.backgroundColor = '#ef4444'; // red
         pwdInput.style.borderColor = '#ef4444';
@@ -1138,6 +1149,6 @@ window.checkPasswordStrength = function(pwd) {
     }
     
     if (pwd.length === 0) {
-        pwdInput.style.borderColor = ''; // reset
+        if (pwdInput) pwdInput.style.borderColor = ''; // reset
     }
 };

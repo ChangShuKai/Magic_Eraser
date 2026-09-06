@@ -1,6 +1,4 @@
-html { background-color: var(--bg-color); }
-
-        :root {
+:root {
             --primary: #1d1d1f;
             --primary-hover: #000000;
             --accent: #0071e3;
@@ -21,6 +19,9 @@ html { background-color: var(--bg-color); }
             --radius-md: 18px;
             --radius-lg: 28px;
         }
+
+        /* html rule moved after :root to ensure CSS variables are resolved first (#16) */
+        html { background-color: var(--bg-color); }
 
         * {
             box-sizing: border-box;
@@ -534,8 +535,7 @@ html { background-color: var(--bg-color); }
         /* Settings Card */
         .settings-card {
             background: var(--card-bg);
-            border: 1px solid var(--glass-border);
-            border-bottom: 1px solid var(--glass-border);
+            /* Removed duplicate border declarations (#17) */
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
             padding: 32px;
@@ -601,6 +601,7 @@ html { background-color: var(--bg-color); }
             color: #6b7280;
             min-width: 100px;
             white-space: nowrap;
+        z-index: 1; /* Sit above radio-glider (#13) */
         }
 
         .radio-label input[type="radio"] {
@@ -1145,7 +1146,7 @@ html { background-color: var(--bg-color); }
             border-radius: 10px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
             transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            z-index: -1;
+            z-index: 0; /* Fixed from -1 (#13) -- was hidden behind parent background */
             /* Default width if JS hasn't run yet */
             width: 100px;
         }
@@ -1217,7 +1218,8 @@ html { background-color: var(--bg-color); }
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     background: transparent !important;
     border: none !important;
-    zoom: 0.75;
+    /* zoom: 0.75 removed (#9) -- non-standard, broken in Firefox */
+    width: 90%;
 }
 
 .auth-layout {
@@ -1421,7 +1423,8 @@ html { background-color: var(--bg-color); }
 }
 
 .btn-google-new svg {
-    margin-right: -20px; /* Offset to center text slightly better */
+    /* Removed negative margin hack (#10) -- flex gap handles spacing */
+    flex-shrink: 0;
 }
 
 .auth-bottom-switch {

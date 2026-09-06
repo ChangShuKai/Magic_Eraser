@@ -101,7 +101,7 @@ def process():
         return jsonify({'error': 'No image uploaded'}), 400
         
     file = request.files['image']
-    from image_processor import process_image, enhance_text, whiten_background, perspective_correction
+    # Imports handled at module level (line 10) -- removed duplicate (#4)
 
     color_type = request.form.get('color_type', 'both')
     fill_method = request.form.get('fill_method', 'white')
