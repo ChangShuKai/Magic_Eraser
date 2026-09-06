@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
 import cv2
 import numpy as np
 import io
@@ -7,7 +8,7 @@ import os
 
 # 將父目錄加入 sys.path 以便匯入 image_processor
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from image_processor import process_image, enhance_text, whiten_background
+from image_processor import process_image, enhance_text, whiten_background, perspective_correction
 
 import glob
 
@@ -46,6 +47,7 @@ def load_onnx_session():
 # ------------------------------
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for cross-origin requests
 
 @app.route('/api/index', methods=['POST'])
 def process():
@@ -55,7 +57,10 @@ def process():
     if not auth_header or not auth_header.startswith("Bearer "):
         return jsonify({'error': 'Unauthorized. Please log in.'}), 401
         
-    token = auth_header.split(" ")[1]
+    parts = auth_header.split(" ")
+    if len(parts) < 2:
+        return jsonify({'error': 'Invalid Authorization header format.'}), 401
+    token = parts[1]
     
     import requests
     SUPABASE_URL = "https://qrjkjdlwhmihxkqnrxzu.supabase.co"

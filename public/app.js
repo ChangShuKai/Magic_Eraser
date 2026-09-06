@@ -882,7 +882,7 @@ if (processBtn) processBtn.addEventListener('click', async () => {
 
         try {
             // 透過 Vercel rewrite 或 Flask proxy 轉發，隱藏真實的 Modal API 網址
-            const API_URL = '/api-proxy/clean';
+            const API_URL = 'https://magic-eraser-34780901980.asia-east1.run.app/api/index';
             
             const response = await fetch(API_URL, {
                 method: 'POST',
