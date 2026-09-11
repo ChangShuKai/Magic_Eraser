@@ -1,12 +1,12 @@
-from flask import Flask, request, jsonify, send_from_directory, send_file
+from flask import Flask, request, jsonify, send_from_directory, send_file, Response
 import cv2
 import numpy as np
 import io
 import os
 from image_processor import process_image, enhance_text, whiten_background
 
-# 建立 Flask 應用程式，並將 web_app 設定為靜態檔案目錄
-app = Flask(__name__, static_folder='web_app')
+# 建立 Flask 應用程式，並將 public 設定為靜態檔案目錄
+app = Flask(__name__, static_folder='public')
 
 @app.route('/')
 def index():
@@ -22,14 +22,32 @@ def static_files(path):
 @app.route('/api-proxy/clean', methods=['POST'])
 def process():
     """處理圖片上傳與轉換的 API"""
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image uploaded'}), 400
+    is_protobuf = request.headers.get('Content-Type') == 'application/x-protobuf'
+
+    if is_protobuf:
+        import sys
+        sys.path.append(os.path.join(os.path.dirname(__file__), 'public'))
+        import magic_eraser_pb2
+        req_msg = magic_eraser_pb2.ProcessRequest()
+        try:
+            req_msg.ParseFromString(request.data)
+        except Exception as e:
+            return jsonify({'error': 'Invalid Protobuf data'}), 400
         
-    file = request.files['image']
-    color_type = request.form.get('color_type', 'both')
-    fill_method = request.form.get('fill_method', 'white')
-    enhance_str = request.form.get('enhance', 'false').lower()
-    enhance = (enhance_str == 'true')
+        in_memory_file = req_msg.image_data
+        color_type = req_msg.color_type or 'both'
+        fill_method = req_msg.fill_method or 'white'
+        enhance = req_msg.enhance
+    else:
+        if 'image' not in request.files:
+            return jsonify({'error': 'No image uploaded'}), 400
+            
+        file = request.files['image']
+        color_type = request.form.get('color_type', 'both')
+        fill_method = request.form.get('fill_method', 'white')
+        enhance_str = request.form.get('enhance', 'false').lower()
+        enhance = (enhance_str == 'true')
+        in_memory_file = file.read()
     
     # 簡單的參數驗證
     if color_type not in ['red', 'blue', 'both']:
@@ -38,7 +56,6 @@ def process():
         return jsonify({'error': 'Invalid fill_method'}), 400
 
     # 讀取圖片到記憶體並轉為 numpy array 給 cv2 使用
-    in_memory_file = file.read()
     nparr = np.frombuffer(in_memory_file, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     
@@ -62,9 +79,16 @@ def process():
             return jsonify({'error': 'Failed to encode processed image'}), 500
             
         # 5. 回傳圖片
-        byte_io = io.BytesIO(im_buf_arr.tobytes())
-        byte_io.seek(0)
-        return send_file(byte_io, mimetype='image/jpeg')
+        if is_protobuf:
+            import sys
+            sys.path.append(os.path.join(os.path.dirname(__file__), 'public'))
+            import magic_eraser_pb2
+            res_msg = magic_eraser_pb2.ProcessResponse(success=True, image_data=im_buf_arr.tobytes())
+            return Response(res_msg.SerializeToString(), mimetype='application/x-protobuf')
+        else:
+            byte_io = io.BytesIO(im_buf_arr.tobytes())
+            byte_io.seek(0)
+            return send_file(byte_io, mimetype='image/jpeg')
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

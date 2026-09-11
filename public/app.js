@@ -872,32 +872,62 @@ if (processBtn) processBtn.addEventListener('click', async () => {
         // 自動壓縮以符合 Vercel 4.5MB 限制
         const fileToUpload = await compressImage(fileObj.file, 4.0);
 
-        const formData = new FormData();
-        formData.append('image', fileToUpload);
-        formData.append('color_type', colorType);
-        formData.append('fill_method', useInpaint ? 'inpaint' : 'white');
-        formData.append('enhance', enhance ? 'true' : 'false');
-        formData.append('deskew', deskew ? 'true' : 'false');
-        formData.append('whiten', whiten ? 'true' : 'false');
-
         try {
+            // 載入 Protobuf 定義 (為確保支援且避免重複載入，只在需要時加載或全域暫存)
+            if (!window.pbRoot) {
+                window.pbRoot = await protobuf.load("magic_eraser.proto");
+            }
+            const ProcessRequest = window.pbRoot.lookupType("magiceraser.ProcessRequest");
+            const ProcessResponse = window.pbRoot.lookupType("magiceraser.ProcessResponse");
+
+            const fileBuffer = await fileToUpload.arrayBuffer();
+            
+            const payload = {
+                imageData: new Uint8Array(fileBuffer),
+                colorType: colorType,
+                fillMethod: useInpaint ? 'inpaint' : 'white',
+                enhance: enhance,
+                deskew: deskew,
+                whiten: whiten
+            };
+            
+            const errMsg = ProcessRequest.verify(payload);
+            if (errMsg) throw Error(errMsg);
+            
+            const message = ProcessRequest.create(payload);
+            const buffer = ProcessRequest.encode(message).finish();
+
             // 透過 Vercel rewrite 或 Flask proxy 轉發，隱藏真實的 Modal API 網址
             const API_URL = 'https://magic-eraser-34780901980.asia-east1.run.app/api/index';
             
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/x-protobuf'
                 },
-                body: formData
+                body: buffer
             });
 
             if (!response.ok) {
+                // 如果後端依然回傳 JSON 錯誤
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(errData.error || `HTTP 錯誤 ${response.status}`);
             }
 
-            const blob = await response.blob();
+            let blob;
+            if (response.headers.get('Content-Type') === 'application/x-protobuf') {
+                const resBuffer = await response.arrayBuffer();
+                const resMessage = ProcessResponse.decode(new Uint8Array(resBuffer));
+                if (!resMessage.success) {
+                    throw new Error(resMessage.errorMessage || '處理失敗');
+                }
+                blob = new Blob([resMessage.imageData], { type: 'image/jpeg' });
+            } else {
+                // 向後相容：如果後端依然回傳 image/jpeg
+                blob = await response.blob();
+            }
+            
             const imgUrl = URL.createObjectURL(blob);
             fileObj.resultBlob = blob;
             fileObj.resultUrl = imgUrl;

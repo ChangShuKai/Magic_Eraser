@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
 import cv2
 import numpy as np
@@ -102,22 +102,39 @@ def process():
             
         app.rate_limits[usage_key] = count + 1
 
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image uploaded'}), 400
-        
-    file = request.files['image']
-    # Imports handled at module level (line 10) -- removed duplicate (#4)
+    is_protobuf = request.headers.get('Content-Type') == 'application/x-protobuf'
 
-    color_type = request.form.get('color_type', 'both')
-    fill_method = request.form.get('fill_method', 'white')
-    enhance_str = request.form.get('enhance', 'false').lower()
-    enhance = (enhance_str == 'true')
-    
-    deskew_str = request.form.get('deskew', 'true').lower()
-    deskew = (deskew_str == 'true')
-    whiten_str = request.form.get('whiten', 'true').lower()
-    whiten = (whiten_str == 'true')
-    
+    if is_protobuf:
+        import magic_eraser_pb2
+        req_msg = magic_eraser_pb2.ProcessRequest()
+        try:
+            req_msg.ParseFromString(request.data)
+        except Exception as e:
+            return jsonify({'error': 'Invalid Protobuf data'}), 400
+        
+        in_memory_file = req_msg.image_data
+        color_type = req_msg.color_type or 'both'
+        fill_method = req_msg.fill_method or 'white'
+        enhance = req_msg.enhance
+        deskew = req_msg.deskew
+        whiten = req_msg.whiten
+    else:
+        if 'image' not in request.files:
+            return jsonify({'error': 'No image uploaded'}), 400
+            
+        file = request.files['image']
+        color_type = request.form.get('color_type', 'both')
+        fill_method = request.form.get('fill_method', 'white')
+        enhance_str = request.form.get('enhance', 'false').lower()
+        enhance = (enhance_str == 'true')
+        
+        deskew_str = request.form.get('deskew', 'true').lower()
+        deskew = (deskew_str == 'true')
+        whiten_str = request.form.get('whiten', 'true').lower()
+        whiten = (whiten_str == 'true')
+
+        in_memory_file = file.read()
+
     # 簡單的參數驗證
     if color_type not in ['red', 'blue', 'both']:
         return jsonify({'error': 'Invalid color_type'}), 400
@@ -125,7 +142,6 @@ def process():
         return jsonify({'error': 'Invalid fill_method'}), 400
 
     # 讀取圖片到記憶體並轉為 numpy array 給 cv2 使用
-    in_memory_file = file.read()
     nparr = np.frombuffer(in_memory_file, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     
@@ -162,9 +178,14 @@ def process():
                 return jsonify({'error': 'Failed to encode processed image'}), 500
                 
             # 6. 回傳圖片
-            byte_io = io.BytesIO(im_buf_arr.tobytes())
-            byte_io.seek(0)
-            return send_file(byte_io, mimetype='image/jpeg')
+            if is_protobuf:
+                import magic_eraser_pb2
+                res_msg = magic_eraser_pb2.ProcessResponse(success=True, image_data=im_buf_arr.tobytes())
+                return Response(res_msg.SerializeToString(), mimetype='application/x-protobuf')
+            else:
+                byte_io = io.BytesIO(im_buf_arr.tobytes())
+                byte_io.seek(0)
+                return send_file(byte_io, mimetype='image/jpeg')
             
         else:
             # fill_method == 'inpaint' -> 使用 ONNX 模型推論 (支援 GCP Cloud Run CPU，極速版)
@@ -214,9 +235,14 @@ def process():
             if not is_success:
                 return jsonify({'error': 'Failed to encode processed image'}), 500
                 
-            byte_io = io.BytesIO(im_buf_arr.tobytes())
-            byte_io.seek(0)
-            return send_file(byte_io, mimetype='image/jpeg')
+            if is_protobuf:
+                import magic_eraser_pb2
+                res_msg = magic_eraser_pb2.ProcessResponse(success=True, image_data=im_buf_arr.tobytes())
+                return Response(res_msg.SerializeToString(), mimetype='application/x-protobuf')
+            else:
+                byte_io = io.BytesIO(im_buf_arr.tobytes())
+                byte_io.seek(0)
+                return send_file(byte_io, mimetype='image/jpeg')
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500

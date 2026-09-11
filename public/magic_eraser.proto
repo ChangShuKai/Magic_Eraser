@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package magiceraser;
+
+message ProcessRequest {
+  bytes image_data = 1;
+  string color_type = 2;
+  string fill_method = 3;
+  bool enhance = 4;
+  bool deskew = 5;
+  bool whiten = 6;
+}
+
+message ProcessResponse {
+  bool success = 1;
+  string error_message = 2;
+  bytes image_data = 3;
+}
