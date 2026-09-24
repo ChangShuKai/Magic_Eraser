@@ -495,20 +495,35 @@
                 const titleEl = card.querySelector('h3');
                 const imgEl = card.querySelector('img');
 
-                const category = categoryEl ? categoryEl.innerText : '';
-                const title = titleEl ? titleEl.innerText : '';
+                // XSS 修復：跳脫 HTML 特殊字元
+                const escHtml = (s) => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+                const category = categoryEl ? escHtml(categoryEl.innerText) : '';
+                const title = titleEl ? escHtml(titleEl.innerText) : '';
                 const imgSrc = imgEl ? imgEl.src : '';
 
-                modalInner.innerHTML = `
-                    <div class="w-full h-[45vh] md:h-[60vh] bg-gray-50 flex justify-center items-center rounded-t-[2.5rem] overflow-hidden border-b border-subtle">
-                        <img src="${imgSrc}" class="w-full h-full object-contain p-6 mix-blend-darken" onerror="this.classList.remove('object-contain','mix-blend-darken','p-6'); this.classList.add('object-cover');" />
-                    </div>
-                    <div class="p-10 md:p-20 bg-card">
-                        <span class="text-secondary text-sm font-bold tracking-widest uppercase mb-4 block">${category}</span>
-                        <h3 class="text-primary text-5xl md:text-6xl font-bold mb-10 apple-title">${title}</h3>
-                        ${dummyContentHtml}
-                    </div>
+                // 建立 DOM 元素取代 innerHTML 注入
+                const container = document.createElement('div');
+                
+                const imgWrapper = document.createElement('div');
+                imgWrapper.className = 'w-full h-[45vh] md:h-[60vh] bg-gray-50 flex justify-center items-center rounded-t-[2.5rem] overflow-hidden border-b border-subtle';
+                const img = document.createElement('img');
+                img.src = imgSrc;
+                img.className = 'w-full h-full object-contain p-6 mix-blend-darken';
+                img.onerror = function() { this.classList.remove('object-contain','mix-blend-darken','p-6'); this.classList.add('object-cover'); };
+                imgWrapper.appendChild(img);
+                container.appendChild(imgWrapper);
+
+                const textDiv = document.createElement('div');
+                textDiv.className = 'p-10 md:p-20 bg-card';
+                textDiv.innerHTML = `
+                    <span class="text-secondary text-sm font-bold tracking-widest uppercase mb-4 block">${category}</span>
+                    <h3 class="text-primary text-5xl md:text-6xl font-bold mb-10 apple-title">${title}</h3>
+                    ${dummyContentHtml}
                 `;
+                container.appendChild(textDiv);
+
+                modalInner.innerHTML = '';
+                modalInner.appendChild(container);
 
                 carouselModal.classList.remove('hidden');
                 carouselModal.classList.add('flex');

@@ -91,10 +91,18 @@ def process():
             return send_file(byte_io, mimetype='image/jpeg')
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # M-4 修復：不洩漏內部錯誤細節
+        import logging
+        logging.error(f"Image processing error: {e}", exc_info=True)
+        return jsonify({'error': '圖片處理失敗，請稍後再試。'}), 500
 
 if __name__ == '__main__':
     # 啟動 Flask 伺服器
+    # H-2 修復：僅綁定 localhost，避免暴露到外網
+    # H-3 修復：debug 模式由環境變數控制，預設關閉
+    debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
     print("啟動 Magic Eraser 伺服器...")
     print("請在瀏覽器開啟: http://127.0.0.1:5000")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    if debug_mode:
+        print("⚠️  Debug 模式已啟用，請勿在生產環境使用！")
+    app.run(host='127.0.0.1', port=5000, debug=debug_mode)

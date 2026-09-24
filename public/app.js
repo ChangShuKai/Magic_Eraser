@@ -1,5 +1,12 @@
 
 // Toast Notification System
+// M-1 修復：HTML 跳脫函數，防止 XSS
+function _escapeHtml(str) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+}
+
 window.showToast = function(msg, type='info') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
@@ -9,9 +16,10 @@ window.showToast = function(msg, type='info') {
     if(type === 'success') icon = '✅';
     if(type === 'error') icon = '❌';
     if(type === 'warning') icon = '⚠️';
+    // M-1 修復：使用 _escapeHtml 跳脫 msg，避免 XSS
     toast.innerHTML = `
         <div class="toast-icon">${icon}</div>
-        <div class="toast-content">${msg}</div>
+        <div class="toast-content">${_escapeHtml(msg)}</div>
     `;
     container.appendChild(toast);
     
@@ -711,7 +719,7 @@ function createPreviewCard(fileObj) {
         const cardHTML = `
             <div class="image-card" id="card_${fileObj.id}">
                 <div class="card-header">
-                    <div class="file-name">${fileObj.file.name}</div>
+                    <div class="file-name">${_escapeHtml(fileObj.file.name)}</div>
                     <div class="file-status status-pending" id="status_${fileObj.id}">等待處理</div>
                 </div>
                 <div class="preview-box">
@@ -897,8 +905,8 @@ if (processBtn) processBtn.addEventListener('click', async () => {
             const message = ProcessRequest.create(payload);
             const buffer = ProcessRequest.encode(message).finish();
 
-            // 透過 Vercel rewrite 或 Flask proxy 轉發，隱藏真實的 Modal API 網址
-            const API_URL = 'https://magic-eraser-34780901980.asia-east1.run.app/api/index';
+            // L-3 修復：透過 Vercel rewrite 代理，隱藏真實後端 URL
+            const API_URL = '/api-proxy/clean';
             
             const response = await fetch(API_URL, {
                 method: 'POST',
@@ -1127,6 +1135,8 @@ window.togglePasswordVisibility = function(inputId, btnElement) {
 window.checkPasswordStrength = function(pwd) {
     const reqLen = document.getElementById('req-len');
     const reqNum = document.getElementById('req-num');
+    const reqUpper = document.getElementById('req-upper');
+    const reqSpecial = document.getElementById('req-special');
     const barFill = document.getElementById('pwdBarFill');
     const desc = document.getElementById('pwdDesc');
     const container = document.getElementById('pwdStrengthContainer');
@@ -1145,37 +1155,58 @@ window.checkPasswordStrength = function(pwd) {
     }
 
     let score = 0;
+    const totalReqs = 4; // L-1 修復：增強為 4 個條件
     
     if (pwd.length >= 8) {
-        reqLen.classList.add('met');
+        if (reqLen) reqLen.classList.add('met');
         score++;
     } else {
-        reqLen.classList.remove('met');
+        if (reqLen) reqLen.classList.remove('met');
     }
     
     if (/[0-9]/.test(pwd)) {
-        reqNum.classList.add('met');
+        if (reqNum) reqNum.classList.add('met');
         score++;
     } else {
-        reqNum.classList.remove('met');
+        if (reqNum) reqNum.classList.remove('met');
+    }
+    
+    // L-1 修復：新增大寫字母要求
+    if (/[A-Z]/.test(pwd)) {
+        if (reqUpper) reqUpper.classList.add('met');
+        score++;
+    } else {
+        if (reqUpper) reqUpper.classList.remove('met');
+    }
+    
+    // L-1 修復：新增特殊字元要求
+    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd)) {
+        if (reqSpecial) reqSpecial.classList.add('met');
+        score++;
+    } else {
+        if (reqSpecial) reqSpecial.classList.remove('met');
     }
     
     // Update bar
-    const percent = (score / 2) * 100;
+    const percent = (score / totalReqs) * 100;
     barFill.style.width = percent + '%';
     
-    if (score === 0) {
+    if (score <= 1) {
         barFill.style.backgroundColor = '#ef4444'; // red
         pwdInput.style.borderColor = '#ef4444';
         desc.innerText = '密碼強度弱。密碼必須包含：';
-    } else if (score === 1) {
+    } else if (score <= 2) {
         barFill.style.backgroundColor = '#f59e0b'; // orange
         pwdInput.style.borderColor = '#f59e0b';
         desc.innerText = '密碼強度中等。密碼必須包含：';
-    } else if (score === 2) {
+    } else if (score <= 3) {
+        barFill.style.backgroundColor = '#84cc16'; // lime
+        pwdInput.style.borderColor = '#84cc16';
+        desc.innerText = '密碼強度良好。密碼必須包含：';
+    } else if (score === 4) {
         barFill.style.backgroundColor = '#10b981'; // green
         pwdInput.style.borderColor = '#10b981';
-        desc.innerText = '密碼強度強。密碼必須包含：';
+        desc.innerText = '密碼強度非常強！';
     }
     
     if (pwd.length === 0) {

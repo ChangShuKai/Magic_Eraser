@@ -1,11 +1,14 @@
 import pyotp
 import jwt
 import datetime
+import os
 from passlib.context import CryptContext
 from typing import Optional, Dict
 
-# 安全常數 (實際專案中應移至環境變數 .env)
-SECRET_KEY = "SUPER_SECRET_ADMIN_KEY_CHANGE_ME"
+# 安全常數 — 從環境變數讀取，絕不硬編碼
+SECRET_KEY = os.environ.get("ADMIN_JWT_SECRET")
+if not SECRET_KEY:
+    raise RuntimeError("環境變數 ADMIN_JWT_SECRET 未設定！請設定後再啟動。")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 

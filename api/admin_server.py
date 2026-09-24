@@ -23,10 +23,12 @@ logger.addHandler(handler)
 # 建立 FastAPI 應用程式
 app = FastAPI(title="Secure Admin Backend")
 
-# Vercel 環境下的 Host 會是動態的，因此先暫時允許所有，或是透過 Vercel 提供的特定網域
-# 若有自訂網域可將其加入 allowed_hosts
+# Vercel 環境下的 Host 會是動態的，應設定為實際使用的網域
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
+if not ALLOWED_HOSTS or ALLOWED_HOSTS == [""]:
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 app.add_middleware(
-    TrustedHostMiddleware, allowed_hosts=["*"] 
+    TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS
 )
 
 # CSP 中介軟體：為所有回應加上 Content-Security-Policy 標頭
@@ -47,11 +49,18 @@ async def add_security_headers(request: Request, call_next):
 
 cookie_scheme = APIKeyCookie(name="admin_token", auto_error=False)
 
+# Admin 帳號資訊從環境變數讀取，不再硬編碼
+_admin_password_hash = os.environ.get("ADMIN_PASSWORD_HASH")
+_admin_totp_secret = os.environ.get("ADMIN_TOTP_SECRET")
+if not _admin_password_hash or not _admin_totp_secret:
+    import warnings
+    warnings.warn("ADMIN_PASSWORD_HASH 或 ADMIN_TOTP_SECRET 環境變數未設定！Admin 登入功能將無法使用。")
+
 MOCK_ADMIN_DB = {
     "admin": {
         "username": "admin",
-        "password_hash": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
-        "totp_secret": "JBSWY3DPEHPK3PXP",
+        "password_hash": _admin_password_hash or "",
+        "totp_secret": _admin_totp_secret or "",
         "role": "superadmin"
     }
 }

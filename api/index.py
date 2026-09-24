@@ -12,6 +12,13 @@ from image_processor import process_image, enhance_text, whiten_background, pers
 
 import glob
 
+# --- Supabase 設定從環境變數讀取 (C-1 修復) ---
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
+if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+    import warnings
+    warnings.warn("SUPABASE_URL 或 SUPABASE_ANON_KEY 環境變數未設定！認證功能可能無法使用。")
+
 # --- 新增: ONNX 模型全域變數 ---
 ORT_SESSION = None
 
@@ -47,7 +54,15 @@ def load_onnx_session():
 # ------------------------------
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for cross-origin requests
+
+# M-3 修復：限制上傳大小 30MB
+app.config['MAX_CONTENT_LENGTH'] = 30 * 1024 * 1024
+
+# M-5 修復：CORS 限制為特定來源
+CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "").split(",")
+if not CORS_ORIGINS or CORS_ORIGINS == [""]:
+    CORS_ORIGINS = ["https://magic-eraser.vercel.app"]
+CORS(app, origins=CORS_ORIGINS)
 
 @app.route('/api/index', methods=['POST'])
 def process():
@@ -63,9 +78,8 @@ def process():
     token = parts[1]
     
     import requests
-    SUPABASE_URL = "https://qrjkjdlwhmihxkqnrxzu.supabase.co"
-    SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyamtqZGx3aG1paHhrcW5yeHp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDYzMjYsImV4cCI6MjEwMzEyMjMyNn0.Z4VAfv6SIUvibLv5h02Arp9gq3jeCPWwBc_S1zuNUDA"
     
+    # 使用模組層級的環境變數 (C-1 修復：不再硬編碼)
     resp = requests.get(
         f"{SUPABASE_URL}/auth/v1/user",
         headers={"Authorization": f"Bearer {token}", "apikey": SUPABASE_ANON_KEY}
@@ -87,20 +101,60 @@ def process():
         if len(profiles) > 0:
             is_vip = profiles[0].get("is_vip", False)
             
-    # 頻率限制 (非 VIP 會員每小時 30 張，單機記憶體暫存)
+    # H-1 修復：使用 Supabase 資料表做頻率限制 (Serverless 安全)
+    # 若沒有 Supabase 可用則退回記憶體限制 (至少比完全沒有好)
     if not is_vip:
         import time
-        if not hasattr(app, 'rate_limits'):
-            app.rate_limits = {}
-        
         current_hour = int(time.time() // 3600)
-        usage_key = f"{user_id}_{current_hour}"
-        count = app.rate_limits.get(usage_key, 0)
         
-        if count >= 30:
+        # 嘗試透過 Supabase 做持久化 rate limit
+        rate_limit_exceeded = False
+        try:
+            rl_resp = requests.get(
+                f"{SUPABASE_URL}/rest/v1/rate_limits?select=count&user_id=eq.{user_id}&hour_bucket=eq.{current_hour}",
+                headers={"Authorization": f"Bearer {token}", "apikey": SUPABASE_ANON_KEY}
+            )
+            if rl_resp.status_code == 200:
+                rl_data = rl_resp.json()
+                if len(rl_data) > 0:
+                    count = rl_data[0].get("count", 0)
+                    if count >= 30:
+                        rate_limit_exceeded = True
+                    else:
+                        # 更新計數
+                        requests.patch(
+                            f"{SUPABASE_URL}/rest/v1/rate_limits?user_id=eq.{user_id}&hour_bucket=eq.{current_hour}",
+                            json={"count": count + 1},
+                            headers={"Authorization": f"Bearer {token}", "apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json"}
+                        )
+                else:
+                    # 新增記錄
+                    requests.post(
+                        f"{SUPABASE_URL}/rest/v1/rate_limits",
+                        json={"user_id": user_id, "hour_bucket": current_hour, "count": 1},
+                        headers={"Authorization": f"Bearer {token}", "apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json", "Prefer": "return=minimal"}
+                    )
+            else:
+                # Supabase rate_limits 表不存在，退回記憶體限制
+                if not hasattr(app, 'rate_limits'):
+                    app.rate_limits = {}
+                usage_key = f"{user_id}_{current_hour}"
+                count = app.rate_limits.get(usage_key, 0)
+                if count >= 30:
+                    rate_limit_exceeded = True
+                app.rate_limits[usage_key] = count + 1
+        except Exception:
+            # 網路錯誤時退回記憶體限制
+            if not hasattr(app, 'rate_limits'):
+                app.rate_limits = {}
+            usage_key = f"{user_id}_{current_hour}"
+            count = app.rate_limits.get(usage_key, 0)
+            if count >= 30:
+                rate_limit_exceeded = True
+            app.rate_limits[usage_key] = count + 1
+        
+        if rate_limit_exceeded:
             return jsonify({'error': 'Rate limit exceeded. Free users are limited to 30 images per hour. Please upgrade to SVIP for unlimited access.'}), 429
-            
-        app.rate_limits[usage_key] = count + 1
 
     is_protobuf = request.headers.get('Content-Type') == 'application/x-protobuf'
 
@@ -123,6 +177,12 @@ def process():
             return jsonify({'error': 'No image uploaded'}), 400
             
         file = request.files['image']
+        
+        # H-4 修復：MIME Type 驗證
+        ALLOWED_MIME = {'image/jpeg', 'image/png', 'image/webp'}
+        if file.mimetype not in ALLOWED_MIME:
+            return jsonify({'error': f'不支援的檔案類型: {file.mimetype}。僅接受 JPG, PNG, WebP。'}), 415
+        
         color_type = request.form.get('color_type', 'both')
         fill_method = request.form.get('fill_method', 'white')
         enhance_str = request.form.get('enhance', 'false').lower()
@@ -140,6 +200,13 @@ def process():
         return jsonify({'error': 'Invalid color_type'}), 400
     if fill_method not in ['white', 'inpaint']:
         return jsonify({'error': 'Invalid fill_method'}), 400
+    
+    # M-2 修復：後端強制 VIP 功能驗證 (不能只靠前端)
+    if not is_vip:
+        if fill_method == 'inpaint':
+            return jsonify({'error': 'AI 智慧修補 (Inpaint) 是 SVIP 專屬功能，請升級後再使用。'}), 403
+        if enhance:
+            return jsonify({'error': '增強黑白對比是 SVIP 專屬功能，請升級後再使用。'}), 403
 
     # 讀取圖片到記憶體並轉為 numpy array 給 cv2 使用
     nparr = np.frombuffer(in_memory_file, np.uint8)
@@ -245,4 +312,7 @@ def process():
                 return send_file(byte_io, mimetype='image/jpeg')
             
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # M-4 修復：不洩漏內部錯誤細節給前端
+        import logging
+        logging.error(f"Image processing error: {e}", exc_info=True)
+        return jsonify({'error': '圖片處理失敗，請稍後再試。'}), 500
