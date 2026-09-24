@@ -8,6 +8,29 @@ from image_processor import process_image, enhance_text, whiten_background
 # 建立 Flask 應用程式，並將 public 設定為靜態檔案目錄
 app = Flask(__name__, static_folder='public')
 
+# 限制上傳檔案大小為 30MB
+app.config['MAX_CONTENT_LENGTH'] = 30 * 1024 * 1024
+
+# 安全標頭中介軟體
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return response
+
+def is_valid_image_bytes(data: bytes) -> bool:
+    """檢查是否為合法的 JPG, PNG 或 WebP 影像魔術字節"""
+    if not data or len(data) < 12:
+        return False
+    if data[:3] == b'\xff\xd8\xff':
+        return True
+    if data[:8] == b'\x89PNG\r\n\x1a\n':
+        return True
+    if data[:4] == b'RIFF' and data[8:12] == b'WEBP':
+        return True
+    return False
+
 @app.route('/')
 def index():
     """回傳首頁 index.html"""
@@ -48,6 +71,10 @@ def process():
         enhance_str = request.form.get('enhance', 'false').lower()
         enhance = (enhance_str == 'true')
         in_memory_file = file.read()
+
+    # 魔術字節驗證：確保上傳內容為真實圖片
+    if not is_valid_image_bytes(in_memory_file):
+        return jsonify({'error': '不支援的檔案類型或檔案已損毀。僅接受 JPG, PNG, WebP。'}), 415
     
     # 簡單的參數驗證
     if color_type not in ['red', 'blue', 'both']:
@@ -61,6 +88,13 @@ def process():
     
     if img is None:
         return jsonify({'error': 'Invalid image file'}), 400
+
+    # 防禦解壓縮炸彈 / OOM 攻擊 (限制最大邊長為 2048)
+    max_dim = 2048
+    h, w = img.shape[:2]
+    if h > max_dim or w > max_dim:
+        scale = max_dim / max(h, w)
+        img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
 
     try:
         # 1. 套用背景白化 (與 main.py 邏輯一致)

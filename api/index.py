@@ -53,15 +53,30 @@ def load_onnx_session():
     return ORT_SESSION
 # ------------------------------
 
+# --- 影像魔術字節驗證，防止 MIME 欺騙與非影像上傳攻擊 ---
+def is_valid_image_bytes(data: bytes) -> bool:
+    if not data or len(data) < 12:
+        return False
+    # JPEG (FF D8 FF)
+    if data[:3] == b'\xff\xd8\xff':
+        return True
+    # PNG (89 50 4E 47 0D 0A 1A 0A)
+    if data[:8] == b'\x89PNG\r\n\x1a\n':
+        return True
+    # WebP (RIFF....WEBP)
+    if data[:4] == b'RIFF' and data[8:12] == b'WEBP':
+        return True
+    return False
+
 app = Flask(__name__)
 
 # M-3 修復：限制上傳大小 30MB
 app.config['MAX_CONTENT_LENGTH'] = 30 * 1024 * 1024
 
 # M-5 修復：CORS 限制為特定來源
-CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "").split(",")
-if not CORS_ORIGINS or CORS_ORIGINS == [""]:
-    CORS_ORIGINS = ["https://magic-eraser.vercel.app"]
+CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
+if not CORS_ORIGINS:
+    CORS_ORIGINS = ["https://magic-eraser.vercel.app", "http://localhost:5000", "http://127.0.0.1:5000"]
 CORS(app, origins=CORS_ORIGINS)
 
 @app.route('/api/index', methods=['POST'])
@@ -194,6 +209,10 @@ def process():
         whiten = (whiten_str == 'true')
 
         in_memory_file = file.read()
+
+    # 魔術字節驗證：確保上傳內容為真實圖片 (防禦 MIME 偽造及 Protobuf 惡意輸入)
+    if not is_valid_image_bytes(in_memory_file):
+        return jsonify({'error': '不支援的檔案類型或檔案已損毀。僅接受 JPG, PNG, WebP。'}), 415
 
     # 簡單的參數驗證
     if color_type not in ['red', 'blue', 'both']:

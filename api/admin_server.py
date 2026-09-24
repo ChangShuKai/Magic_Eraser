@@ -13,20 +13,29 @@ from admin_auth import (
     decode_access_token, verify_totp
 )
 
+# 自訂 Formatter 提供預設值，避免缺少 clientip/user 時引發 ValueError 異常
+class SafeAuditFormatter(logging.Formatter):
+    def format(self, record):
+        if not hasattr(record, "clientip"):
+            record.clientip = "-"
+        if not hasattr(record, "user"):
+            record.user = "-"
+        return super().format(record)
+
 # 初始化日誌 (針對 Vercel Serverless，改為輸出至標準輸出 stdout，避免寫入 read-only 檔案系統)
 logger = logging.getLogger("admin_audit")
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler(sys.stdout)
-handler.setFormatter(logging.Formatter('%(asctime)s - %(clientip)s - %(user)s - %(message)s'))
+handler.setFormatter(SafeAuditFormatter('%(asctime)s - %(clientip)s - %(user)s - %(message)s'))
 logger.addHandler(handler)
 
 # 建立 FastAPI 應用程式
 app = FastAPI(title="Secure Admin Backend")
 
-# Vercel 環境下的 Host 會是動態的，應設定為實際使用的網域
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
-if not ALLOWED_HOSTS or ALLOWED_HOSTS == [""]:
-    ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+# Vercel 環境下的 Host 會是動態的，預設包含 *.vercel.app 避免生產環境直接 400 Bad Request
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get("ALLOWED_HOSTS", "").split(",") if h.strip()]
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "*.vercel.app", "magic-eraser.vercel.app"]
 app.add_middleware(
     TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS
 )

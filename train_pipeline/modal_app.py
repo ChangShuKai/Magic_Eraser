@@ -174,10 +174,13 @@ class CleanerService:
             
         token = authorization.split(" ")[1]
         
-        # 透過 Supabase API 驗證 JWT
+        # 透過 Supabase API 驗證 JWT (從環境變數讀取，不再硬編碼)
+        import os
         import httpx
-        SUPABASE_URL = "https://qrjkjdlwhmihxkqnrxzu.supabase.co"
-        SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyamtqZGx3aG1paHhrcW5yeHp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDYzMjYsImV4cCI6MjEwMzEyMjMyNn0.Z4VAfv6SIUvibLv5h02Arp9gq3jeCPWwBc_S1zuNUDA"
+        SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+        SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
+        if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+            return Response(content=b'{"error": "Server auth configuration missing."}', status_code=500, media_type="application/json")
         
         async with httpx.AsyncClient() as client:
             resp = await client.get(
@@ -221,7 +224,34 @@ class CleanerService:
                     
                 rate_limit_dict[usage_key] = count + 1
 
+        # 後端強制 VIP 功能驗證 (防止非 VIP 繞過權限調用 GPU inpaint / enhance)
+        if not is_vip:
+            if fill_method == 'inpaint':
+                return Response(
+                    content='{"error": "AI 智慧修補 (Inpaint) 是 SVIP 專屬功能，請升級後再使用。"}'.encode('utf-8'),
+                    status_code=403,
+                    media_type="application/json"
+                )
+            if enhance.lower() == 'true':
+                return Response(
+                    content='{"error": "增強黑白對比是 SVIP 專屬功能，請升級後再使用。"}'.encode('utf-8'),
+                    status_code=403,
+                    media_type="application/json"
+                )
+
         img_bytes = await image.read()
+
+        # 魔術字節驗證：確保上傳為真實圖片 (JPG, PNG, WebP)
+        if len(img_bytes) < 12 or not (
+            img_bytes[:3] == b'\xff\xd8\xff' or 
+            img_bytes[:8] == b'\x89PNG\r\n\x1a\n' or 
+            (img_bytes[:4] == b'RIFF' and img_bytes[8:12] == b'WEBP')
+        ):
+            return Response(
+                content='{"error": "不支援的檔案類型或檔案已損毀。僅接受 JPG, PNG, WebP。"}'.encode('utf-8'),
+                status_code=415,
+                media_type="application/json"
+            )
         
         # 如果是純 HSV 去除顏色 (fill_method == 'white')
         if fill_method == 'white':
@@ -283,9 +313,12 @@ class CleanerService:
             # padding 順序為 (左, 右, 上, 下)
             input_tensor = F.pad(input_tensor, (0, pad_w, 0, pad_h), mode='reflect')
 
-        # 極速推論 (FP16)
+        # 極速推論 (CUDA 啟用 FP16，CPU 保持標準精度)
         with torch.inference_mode():
-            with torch.autocast(device_type="cuda", dtype=torch.float16):
+            if self.device == "cuda":
+                with torch.autocast(device_type="cuda", dtype=torch.float16):
+                    output_tensor = self.model(input_tensor)
+            else:
                 output_tensor = self.model(input_tensor)
                 
         # 切割回原始圖片大小
