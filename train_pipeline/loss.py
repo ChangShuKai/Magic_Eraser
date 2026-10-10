@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import torchvision.models as models
+
 def gaussian_window(window_size, sigma):
     coords = torch.arange(window_size, dtype=torch.float32)
     coords -= window_size // 2
@@ -34,15 +36,61 @@ def ssim(img1, img2, window_size=11, size_average=True):
     else:
         return ssim_map.mean(1).mean(1).mean(1)
 
+class VGGPerceptualLoss(nn.Module):
+    def __init__(self):
+        super(VGGPerceptualLoss, self).__init__()
+        # 載入預訓練的 VGG16 (使用 features 部分)
+        vgg = models.vgg16(weights=models.VGG16_Weights.DEFAULT).features
+        
+        # 提取到 ReLU1_2, ReLU2_2, ReLU3_3 的特徵
+        self.slice1 = nn.Sequential()
+        self.slice2 = nn.Sequential()
+        self.slice3 = nn.Sequential()
+        
+        for x in range(4):
+            self.slice1.add_module(str(x), vgg[x])
+        for x in range(4, 9):
+            self.slice2.add_module(str(x), vgg[x])
+        for x in range(9, 16):
+            self.slice3.add_module(str(x), vgg[x])
+            
+        # 凍結參數
+        for param in self.parameters():
+            param.requires_grad = False
+            
+        self.criterion = nn.L1Loss()
+        
+    def forward(self, pred, target):
+        # 因為輸入是單通道(灰階)，VGG 需要 3 通道(RGB)，所以把單通道複製 3 次
+        pred_3c = pred.repeat(1, 3, 1, 1)
+        target_3c = target.repeat(1, 3, 1, 1)
+        
+        h_pred1 = self.slice1(pred_3c)
+        h_pred2 = self.slice2(h_pred1)
+        h_pred3 = self.slice3(h_pred2)
+        
+        h_target1 = self.slice1(target_3c)
+        h_target2 = self.slice2(h_target1)
+        h_target3 = self.slice3(h_target2)
+        
+        loss1 = self.criterion(h_pred1, h_target1)
+        loss2 = self.criterion(h_pred2, h_target2)
+        loss3 = self.criterion(h_pred3, h_target3)
+        
+        return loss1 + loss2 + loss3
+
 class CompositeLoss(nn.Module):
-    def __init__(self, lambda_l1=1.0, lambda_ssim=0.5, lambda_sobel=0.5):
+    def __init__(self, lambda_l1=0.5, lambda_ssim=1.0, lambda_sobel=1.0, lambda_perceptual=0.1):
         super(CompositeLoss, self).__init__()
         self.l1 = nn.L1Loss()
         
-        # 調整權重：讓模型更重視「保留原始結構(SSIM)」與「邊緣(Sobel)」，降低背景留白的壓力
-        self.lambda_l1 = 0.5    # 原本是 1.0
-        self.lambda_ssim = 1.0  # 原本是 0.5
-        self.lambda_sobel = 1.0 # 原本是 0.5
+        self.lambda_l1 = lambda_l1
+        self.lambda_ssim = lambda_ssim
+        self.lambda_sobel = lambda_sobel
+        self.lambda_perceptual = lambda_perceptual
+        
+        self.perceptual_loss = VGGPerceptualLoss()
+
         
         # Sobel filters
         sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
@@ -69,13 +117,14 @@ class CompositeLoss(nn.Module):
         # SSIM is a similarity metric (1 is best), so loss is (1 - SSIM)
         loss_ssim = 1 - ssim(pred, target)
         loss_sobel = self.sobel_edge_loss(pred, target)
+        loss_perc = self.perceptual_loss(pred, target)
         
-        total_loss = self.lambda_l1 * loss_l1 + self.lambda_ssim * loss_ssim + self.lambda_sobel * loss_sobel
-        return total_loss, loss_l1, loss_ssim, loss_sobel
+        total_loss = self.lambda_l1 * loss_l1 + self.lambda_ssim * loss_ssim + self.lambda_sobel * loss_sobel + self.lambda_perceptual * loss_perc
+        return total_loss, loss_l1, loss_ssim, loss_sobel, loss_perc
 
 if __name__ == "__main__":
     criterion = CompositeLoss()
     pred = torch.rand(2, 1, 512, 512)
     target = torch.rand(2, 1, 512, 512)
-    loss, l1, s_loss, sob_loss = criterion(pred, target)
-    print(f"Total: {loss.item():.4f}, L1: {l1.item():.4f}, SSIM: {s_loss.item():.4f}, Sobel: {sob_loss.item():.4f}")
+    loss, l1, s_loss, sob_loss, perc_loss = criterion(pred, target)
+    print(f"Total: {loss.item():.4f}, L1: {l1.item():.4f}, SSIM: {s_loss.item():.4f}, Sobel: {sob_loss.item():.4f}, Perceptual: {perc_loss.item():.4f}")

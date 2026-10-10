@@ -20,21 +20,34 @@ if not SUPABASE_URL or not SUPABASE_ANON_KEY:
     warnings.warn("SUPABASE_URL 或 SUPABASE_ANON_KEY 環境變數未設定！認證功能可能無法使用。")
 
 # --- 新增: ONNX 模型全域變數 ---
-ORT_SESSION = None
+ORT_SESSIONS = {}
 
-def load_onnx_session():
-    global ORT_SESSION
-    if ORT_SESSION is not None:
-        return ORT_SESSION
+def load_onnx_session(model_name='klareo-1-flash'):
+    global ORT_SESSIONS
+    if model_name in ORT_SESSIONS:
+        return ORT_SESSIONS[model_name]
     try:
         import onnxruntime as ort
         
+        # Determine filename based on model_name
+        # For simplicity, if 'klareo-1-pro' is requested, look for model_quantized.onnx (which we just exported from epoch 126)
+        # If 'klareo-1-flash', you could look for another file, but we will fall back to model_quantized.onnx if no specific one exists
+        filename = "model_quantized_pro.onnx" if model_name == "klareo-1-pro" else "model_quantized.onnx"
+        
         # 尋找 quantized onnx 模型 (假設放在 train_pipeline/checkpoints/ 或根目錄)
         possible_paths = [
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), "train_pipeline", "checkpoints", "model_quantized.onnx"),
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), "model_quantized.onnx"),
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), "web_app", "model_quantized.onnx")
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "train_pipeline", "checkpoints", filename),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), filename),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "web_app", filename)
         ]
+        
+        # fallback to default if pro not found
+        if model_name == "klareo-1-pro":
+             possible_paths += [
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), "train_pipeline", "checkpoints", "model_quantized.onnx"),
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), "model_quantized.onnx"),
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), "web_app", "model_quantized.onnx")
+            ]
         
         model_path = None
         for p in possible_paths:
@@ -44,13 +57,15 @@ def load_onnx_session():
                 
         if model_path:
             # 啟動 ONNX Runtime 推論引擎
-            ORT_SESSION = ort.InferenceSession(model_path, providers=['CPUExecutionProvider'])
-            print(f"Loaded ONNX Model: {model_path}")
+            session = ort.InferenceSession(model_path, providers=['CPUExecutionProvider'])
+            ORT_SESSIONS[model_name] = (session, model_path)
+            print(f"Loaded ONNX Model for {model_name}: {model_path}")
+            return session, model_path
         else:
-            print("No model_quantized.onnx found.")
+            print(f"No {filename} found.")
     except Exception as e:
         print(f"Failed to load ONNX model: {e}")
-    return ORT_SESSION
+    return None
 # ------------------------------
 
 # --- 影像魔術字節驗證，防止 MIME 欺騙與非影像上傳攻擊 ---
@@ -187,6 +202,7 @@ def process():
         enhance = req_msg.enhance
         deskew = req_msg.deskew
         whiten = req_msg.whiten
+        model_name = getattr(req_msg, 'model_name', 'klareo-1-flash')
     else:
         if 'image' not in request.files:
             return jsonify({'error': 'No image uploaded'}), 400
@@ -207,6 +223,7 @@ def process():
         deskew = (deskew_str == 'true')
         whiten_str = request.form.get('whiten', 'true').lower()
         whiten = (whiten_str == 'true')
+        model_name = request.form.get('model_name', 'klareo-1-flash')
 
         in_memory_file = file.read()
 
@@ -275,7 +292,7 @@ def process():
             
         else:
             # fill_method == 'inpaint' -> 使用 ONNX 模型推論 (支援 GCP Cloud Run CPU，極速版)
-            session = load_onnx_session()
+            session = load_onnx_session(model_name)
             if session is None:
                 return jsonify({'error': 'ONNX model is not available. Please check server logs.'}), 500
                 

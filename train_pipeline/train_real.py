@@ -91,14 +91,18 @@ class RealExamDataset(Dataset):
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
+    # 限制 RTX 3060 最多只使用 50% VRAM
+    if torch.cuda.is_available():
+        torch.cuda.set_per_process_memory_fraction(0.5, 0)
+        
     model = MobileNetV3UNet().to(device)
-    batch_size = 32
+    batch_size = 4 # 因應 VRAM 50% 限制，降至 4
     
     dataset = RealExamDataset(
         input_dir="../real_data/input", 
         target_dir="../real_data/target_aligned", 
         patch_size=512, 
-        length=2000
+        length=250
     )
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
     
@@ -108,11 +112,16 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=1e-4) 
     scheduler = CosineAnnealingLR(optimizer, T_max=10, eta_min=1e-5)
     
-    start_epoch = 121
-    ckpt_path = f"checkpoints/model_epoch_{start_epoch}.pth"
-    if os.path.exists(ckpt_path):
-        model.load_state_dict(torch.load(ckpt_path, map_location=device))
-        print(f"Resuming for ALIGNED REAL DATA from {ckpt_path} (Epoch {start_epoch})")
+    import glob
+    checkpoints = glob.glob('checkpoints/model_epoch_*.pth')
+    start_epoch = 0
+    if checkpoints:
+        latest_ckpt = max(checkpoints, key=lambda x: int(x.split('_')[-1].split('.')[0]))
+        start_epoch = int(latest_ckpt.split('_')[-1].split('.')[0])
+        model.load_state_dict(torch.load(latest_ckpt, map_location=device))
+        print(f"Resuming from {latest_ckpt} (Epoch {start_epoch}) for ALIGNED REAL DATA...")
+    else:
+        print("Cannot find any checkpoints! Starting from scratch...")
     
     target_epochs = start_epoch + 5 # 依照要求跑 5 輪
     
@@ -126,7 +135,7 @@ def main():
             optimizer.zero_grad()
             outputs = model(inputs)
             
-            loss, loss_l1, loss_ssim, loss_sobel = criterion(outputs, targets)
+            loss, loss_l1, loss_ssim, loss_sobel, loss_perc = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
             

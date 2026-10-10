@@ -9,10 +9,12 @@ message ProcessRequest {
   bool enhance = 4;
   bool deskew = 5;
   bool whiten = 6;
+  string model_name = 7;
 }
 
 message ProcessResponse {
   bool success = 1;
   string error_message = 2;
   bytes image_data = 3;
+  string used_model_name = 4;
 }

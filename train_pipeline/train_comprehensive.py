@@ -16,32 +16,39 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
+    # 限制 RTX 3060 最多只使用 50% VRAM
+    if torch.cuda.is_available():
+        torch.cuda.set_per_process_memory_fraction(0.5, 0)
+        print("GPU Memory limited to 50% (Max ~6GB on RTX 3060).")
+    
     # 建立綜合資料集 (Comprehensive Dataset)
     # 1. 純合成資料 (長條圖、拋物線、白底，培養廣泛泛化能力)
-    synth_dataset = SyntheticExamDataset(length=2000, patch_size=512)
+    synth_dataset = SyntheticExamDataset(length=250, patch_size=512)
     
     # 2. 混合真實資料 (真實考卷底圖 + 極粗黑假手寫，專精真實場景與黑筆對抗)
-    hybrid_dataset = HybridDataset(target_dir="../real_data/target", patch_size=512, length=2000)
+    hybrid_dataset = HybridDataset(target_dir="../real_data/target", patch_size=512, length=250)
     
     # 將兩者合併，確保模型既不忘記廣泛圖表，又精通真實考卷
     comprehensive_dataset = ConcatDataset([synth_dataset, hybrid_dataset])
     
     # DataLoader 會自動打亂這兩批資料
-    batch_size = 32
+    # 因應 VRAM 50% 限制，將 batch_size 從 16 降至 4
+    batch_size = 4
     dataloader = DataLoader(comprehensive_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
     
     # 載入模型
     model = MobileNetV3UNet().to(device)
     
-    # 載入第 55 輪權重繼續訓練
-    ckpt_path = "checkpoints/model_epoch_55.pth"
-    start_epoch = 55
-    if os.path.exists(ckpt_path):
-        model.load_state_dict(torch.load(ckpt_path, map_location=device))
-        print(f"Resuming from {ckpt_path} for COMPREHENSIVE Training...")
+    import glob
+    checkpoints = glob.glob('checkpoints/model_epoch_*.pth')
+    start_epoch = 0
+    if checkpoints:
+        latest_ckpt = max(checkpoints, key=lambda x: int(x.split('_')[-1].split('.')[0]))
+        start_epoch = int(latest_ckpt.split('_')[-1].split('.')[0])
+        model.load_state_dict(torch.load(latest_ckpt, map_location=device))
+        print(f"Resuming from {latest_ckpt} (Epoch {start_epoch}) for COMPREHENSIVE Training...")
     else:
-        print("Cannot find model_epoch_55.pth, starting from scratch...")
-        start_epoch = 0
+        print("Cannot find any checkpoints, starting from scratch...")
 
     criterion = CompositeLoss().to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-4) 
@@ -59,7 +66,7 @@ def main():
             optimizer.zero_grad()
             outputs = model(inputs)
             
-            loss, _, _, _ = criterion(outputs, targets)
+            loss, _, _, _, _ = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
             

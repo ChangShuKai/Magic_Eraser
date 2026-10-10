@@ -832,6 +832,7 @@ if (processBtn) processBtn.addEventListener('click', async () => {
     const enhance = document.getElementById('cb_enhance').checked;
     const deskew = document.getElementById('cb_deskew') ? document.getElementById('cb_deskew').checked : true;
     const whiten = document.getElementById('cb_whiten') ? document.getElementById('cb_whiten').checked : true;
+    const modelName = document.getElementById('inpaint_model') ? document.getElementById('inpaint_model').value : 'klareo-1-flash';
 
     let completedCount = 0;
 
@@ -896,7 +897,8 @@ if (processBtn) processBtn.addEventListener('click', async () => {
                 fillMethod: useInpaint ? 'inpaint' : 'white',
                 enhance: enhance,
                 deskew: deskew,
-                whiten: whiten
+                whiten: whiten,
+                modelName: modelName
             };
             
             const errMsg = ProcessRequest.verify(payload);

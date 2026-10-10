@@ -137,10 +137,14 @@ class HybridDataset(Dataset):
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
+    # 限制 RTX 3060 最多只使用 50% VRAM
+    if torch.cuda.is_available():
+        torch.cuda.set_per_process_memory_fraction(0.5, 0)
+        
     model = MobileNetV3UNet().to(device)
-    batch_size = 32 # 依照要求改回原本的 32
+    batch_size = 4 # 因應 VRAM 50% 限制，降至 4
     
-    dataset = HybridDataset(target_dir="../real_data/target", patch_size=512, length=2000)
+    dataset = HybridDataset(target_dir="../real_data/target", patch_size=512, length=250)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
     
     criterion = CompositeLoss().to(device)
@@ -148,15 +152,16 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=2e-4) 
     scheduler = CosineAnnealingLR(optimizer, T_max=10, eta_min=1e-5)
     
-    # 載入被公認表現最好的第 55 輪權重，並從這裡重新出發
-    ckpt_path = "checkpoints/model_epoch_55.pth"
-    start_epoch = 55
-    if os.path.exists(ckpt_path):
-        model.load_state_dict(torch.load(ckpt_path, map_location=device))
-        print(f"Resuming from {ckpt_path} for Thicker Hybrid Training (Conservative Loss)...")
+    import glob
+    checkpoints = glob.glob('checkpoints/model_epoch_*.pth')
+    start_epoch = 0
+    if checkpoints:
+        latest_ckpt = max(checkpoints, key=lambda x: int(x.split('_')[-1].split('.')[0]))
+        start_epoch = int(latest_ckpt.split('_')[-1].split('.')[0])
+        model.load_state_dict(torch.load(latest_ckpt, map_location=device))
+        print(f"Resuming from {latest_ckpt} (Epoch {start_epoch}) for Thicker Hybrid Training (Conservative Loss)...")
     else:
-        print("Cannot find model_epoch_55.pth!")
-        return
+        print("Cannot find any checkpoints! Starting from scratch...")
     
     target_epochs = start_epoch + 1000 # 無限期訓練 1000 輪
     
@@ -170,7 +175,7 @@ def main():
             optimizer.zero_grad()
             outputs = model(inputs)
             
-            loss, _, _, _ = criterion(outputs, targets)
+            loss, _, _, _, _ = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
             

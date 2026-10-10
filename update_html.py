@@ -73,6 +73,7 @@ if start_idx != -1 and end_idx != -1:
                                     <span style="font-size: 0.85rem; color: #6b7280; font-weight: 600;">選擇模型：</span>
                                     <select id="inpaint_model" style="padding: 6px 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 0.85rem; outline: none; background: #fff; cursor: pointer; flex: 1;">
                                         <option value="klareo-1-flash">Klareo-1 flash</option>
+                                        <option value="klareo-1-pro">Klareo-1 pro</option>
                                     </select>
                                 </div>
                             </div>

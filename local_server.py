@@ -5,6 +5,60 @@ import io
 import os
 from image_processor import process_image, enhance_text, whiten_background
 
+import torch
+import torchvision.transforms as T
+import torch.nn.functional as F
+from PIL import Image
+
+AI_MODELS = {}
+
+def get_ai_model(model_name):
+    global AI_MODELS
+    if model_name in AI_MODELS:
+        return AI_MODELS[model_name]
+    
+    import sys
+    train_pipeline_dir = os.path.join(os.path.dirname(__file__), 'train_pipeline')
+    if train_pipeline_dir not in sys.path:
+        sys.path.append(train_pipeline_dir)
+        
+    try:
+        from model import MobileNetV3UNet
+    except ImportError:
+        return None
+        
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model = MobileNetV3UNet()
+    
+    if model_name == 'klareo-1-pro':
+        model_path = os.path.join(train_pipeline_dir, "checkpoints", "model_epoch_126.pth")
+    else:
+        # Default for klareo-1-flash or others, you could use a different path
+        # Let's find the latest model for flash or just use model_epoch_1.pth
+        import glob
+        checkpoint_dir = os.path.join(train_pipeline_dir, "checkpoints")
+        pth_files = glob.glob(os.path.join(checkpoint_dir, "model_epoch_*.pth"))
+        
+        # fallback to the 126 or max
+        model_path = os.path.join(train_pipeline_dir, "checkpoints", "model_epoch_1.pth")
+        if pth_files:
+            def get_epoch_num(f):
+                try:
+                    return int(os.path.basename(f).replace("model_epoch_", "").replace(".pth", ""))
+                except:
+                    return -1
+            latest_pth = max(pth_files, key=get_epoch_num)
+            if latest_pth:
+                model_path = latest_pth
+                
+    if os.path.exists(model_path):
+        model.load_state_dict(torch.load(model_path, map_location=device))
+    model.to(device)
+    model.eval()
+    
+    AI_MODELS[model_name] = (model, device, model_path)
+    return AI_MODELS[model_name]
+
 # 建立 Flask 應用程式，並將 public 設定為靜態檔案目錄
 app = Flask(__name__, static_folder='public')
 
@@ -61,6 +115,7 @@ def process():
         color_type = req_msg.color_type or 'both'
         fill_method = req_msg.fill_method or 'white'
         enhance = req_msg.enhance
+        model_name = getattr(req_msg, 'model_name', 'klareo-1-flash')
     else:
         if 'image' not in request.files:
             return jsonify({'error': 'No image uploaded'}), 400
@@ -70,6 +125,7 @@ def process():
         fill_method = request.form.get('fill_method', 'white')
         enhance_str = request.form.get('enhance', 'false').lower()
         enhance = (enhance_str == 'true')
+        model_name = request.form.get('model_name', 'klareo-1-flash')
         in_memory_file = file.read()
 
     # 魔術字節驗證：確保上傳內容為真實圖片
@@ -97,32 +153,79 @@ def process():
         img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
 
     try:
-        # 1. 套用背景白化 (與 main.py 邏輯一致)
-        img = whiten_background(img)
-        
-        # 2. 執行影像處理去除筆跡 (與 main.py 一致，只跑 1 次以提升效能)
-        img = process_image(img, color_type=color_type, tolerance=50, fill_method=fill_method)
+        if fill_method == 'white':
+            # 1. 套用背景白化 (與 main.py 邏輯一致)
+            img = whiten_background(img)
             
-        # 3. 根據選項決定是否增強對比
-        if enhance:
-            img = enhance_text(img)
+            # 2. 執行影像處理去除筆跡 (與 main.py 一致，只跑 1 次以提升效能)
+            img = process_image(img, color_type=color_type, tolerance=50, fill_method=fill_method)
+                
+            # 3. 根據選項決定是否增強對比
+            if enhance:
+                img = enhance_text(img)
+                
+            # 4. 編碼回 JPEG 格式
+            is_success, im_buf_arr = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            if not is_success:
+                return jsonify({'error': 'Failed to encode processed image'}), 500
+        else:
+            # AI 智慧修補 (inpaint)
+            model_info = get_ai_model(model_name)
+            if model_info is None:
+                return jsonify({'error': 'AI model is not available.'}), 500
+                
+            model, device, used_model_path = model_info
             
-        # 4. 編碼回 JPEG 格式
-        is_success, im_buf_arr = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 90])
-        if not is_success:
-            return jsonify({'error': 'Failed to encode processed image'}), 500
+            img_pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)).convert("L")
+            transform = T.ToTensor()
+            input_tensor = transform(img_pil).unsqueeze(0).to(device)
+            
+            _, _, h_t, w_t = input_tensor.size()
+            pad_h = (32 - (h_t % 32)) % 32
+            pad_w = (32 - (w_t % 32)) % 32
+            if pad_h > 0 or pad_w > 0:
+                input_tensor = F.pad(input_tensor, (0, pad_w, 0, pad_h), mode='reflect')
+                
+            with torch.no_grad():
+                if device == 'cuda':
+                    with torch.autocast(device_type="cuda", dtype=torch.float16):
+                        output_tensor = model(input_tensor)
+                else:
+                    output_tensor = model(input_tensor)
+                    
+            if pad_h > 0 or pad_w > 0:
+                output_tensor = output_tensor[:, :, :h_t, :w_t]
+                
+            output_tensor = output_tensor.squeeze(0).clamp(0, 1).cpu()
+            out_img = T.ToPILImage()(output_tensor).convert("RGB")
+            
+            img = cv2.cvtColor(np.array(out_img), cv2.COLOR_RGB2BGR)
+            is_success, im_buf_arr = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            if not is_success:
+                return jsonify({'error': 'Failed to encode processed image'}), 500
+            
+            used_model_name = os.path.basename(used_model_path)
             
         # 5. 回傳圖片
         if is_protobuf:
             import sys
             sys.path.append(os.path.join(os.path.dirname(__file__), 'public'))
             import magic_eraser_pb2
-            res_msg = magic_eraser_pb2.ProcessResponse(success=True, image_data=im_buf_arr.tobytes())
+            if fill_method == 'white':
+                res_msg = magic_eraser_pb2.ProcessResponse(success=True, image_data=im_buf_arr.tobytes())
+            else:
+                res_msg = magic_eraser_pb2.ProcessResponse(success=True, image_data=im_buf_arr.tobytes(), used_model_name=used_model_name)
             return Response(res_msg.SerializeToString(), mimetype='application/x-protobuf')
         else:
             byte_io = io.BytesIO(im_buf_arr.tobytes())
             byte_io.seek(0)
-            return send_file(byte_io, mimetype='image/jpeg')
+            
+            # Since send_file doesn't easily support custom headers for file download in a standard way that matches json response, 
+            # we can inject a header.
+            response = send_file(byte_io, mimetype='image/jpeg')
+            if fill_method != 'white':
+                response.headers['X-Used-Model-Name'] = used_model_name
+            return response
         
     except Exception as e:
         # M-4 修復：不洩漏內部錯誤細節

@@ -15,12 +15,16 @@ def train():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
     
+    # 限制 RTX 3060 最多只使用 50% VRAM
+    if torch.cuda.is_available():
+        torch.cuda.set_per_process_memory_fraction(0.5, 0)
+    
     # 建立模型
     model = MobileNetV3UNet().to(device)
     
     # 建立 DataLoader
-    batch_size = 32 # 依照要求提高到 32，佔用約 6~7GB GPU VRAM
-    dataset = SyntheticExamDataset(length=10000, patch_size=512)    
+    batch_size = 4 # 因應 VRAM 50% 限制，降至 4
+    dataset = SyntheticExamDataset(length=500, patch_size=512)    
     # 強制使用單執行緒 (num_workers=0)，絕對不佔用額外的系統 RAM 與 CPU
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
     
@@ -58,7 +62,7 @@ def train():
             optimizer.zero_grad()
             outputs = model(inputs)
             
-            loss, l1, ssim_loss, sobel = criterion(outputs, targets)
+            loss, l1, ssim_loss, sobel, perc_loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
             
