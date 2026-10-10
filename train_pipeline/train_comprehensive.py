@@ -16,10 +16,10 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
-    # 限制 RTX 3060 最多只使用 50% VRAM
+    # 限制 RTX 3060 最多只使用 30% VRAM，讓出空間給其他使用者
     if torch.cuda.is_available():
-        torch.cuda.set_per_process_memory_fraction(0.5, 0)
-        print("GPU Memory limited to 50% (Max ~6GB on RTX 3060).")
+        torch.cuda.set_per_process_memory_fraction(0.3, 0)
+        print("GPU Memory limited to 30% (Max ~3.6GB on RTX 3060).")
     
     # 建立綜合資料集 (Comprehensive Dataset)
     # 1. 純合成資料 (長條圖、拋物線、白底，培養廣泛泛化能力)
@@ -32,8 +32,8 @@ def main():
     comprehensive_dataset = ConcatDataset([synth_dataset, hybrid_dataset])
     
     # DataLoader 會自動打亂這兩批資料
-    # 因應 VRAM 50% 限制，將 batch_size 從 16 降至 4
-    batch_size = 4
+    # 因應 VRAM 30% 限制，將 batch_size 降至 2
+    batch_size = 2
     dataloader = DataLoader(comprehensive_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
     
     # 載入模型
@@ -56,6 +56,7 @@ def main():
     
     target_epochs = start_epoch + 1000 # 綜合特訓 1000 輪
     
+    import time
     for epoch in range(start_epoch, target_epochs):
         model.train()
         epoch_loss = 0.0
@@ -71,6 +72,9 @@ def main():
             optimizer.step()
             
             epoch_loss += loss.item()
+            
+            # 強制暫停 0.5 秒，降低 GPU 使用率，避免長期佔滿 100% 運算力
+            time.sleep(0.5)
             
             if batch_idx % 10 == 0:
                 print(f"Comprehensive Epoch [{epoch+1}/{target_epochs}] Batch [{batch_idx}/{len(dataloader)}] Loss: {loss.item():.4f}")
