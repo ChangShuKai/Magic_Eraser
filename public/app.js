@@ -926,6 +926,7 @@ if (processBtn) processBtn.addEventListener('click', async () => {
             }
 
             let blob;
+            let usedModelName = '';
             if (response.headers.get('Content-Type') === 'application/x-protobuf') {
                 const resBuffer = await response.arrayBuffer();
                 const resMessage = ProcessResponse.decode(new Uint8Array(resBuffer));
@@ -933,9 +934,15 @@ if (processBtn) processBtn.addEventListener('click', async () => {
                     throw new Error(resMessage.errorMessage || '處理失敗');
                 }
                 blob = new Blob([resMessage.imageData], { type: 'image/jpeg' });
+                usedModelName = resMessage.usedModelName || '';
             } else {
                 // 向後相容：如果後端依然回傳 image/jpeg
+                usedModelName = response.headers.get('X-Used-Model-Name') || '';
                 blob = await response.blob();
+            }
+            
+            if (usedModelName) {
+                console.log(`[AI 模型載入] 後端正在使用的模型權重檔案為: ${usedModelName}`);
             }
             
             const imgUrl = URL.createObjectURL(blob);

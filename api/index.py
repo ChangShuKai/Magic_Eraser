@@ -292,9 +292,18 @@ def process():
             
         else:
             # fill_method == 'inpaint' -> 使用 ONNX 模型推論 (支援 GCP Cloud Run CPU，極速版)
-            session = load_onnx_session(model_name)
-            if session is None:
+            model_info = load_onnx_session(model_name)
+            if model_info is None:
                 return jsonify({'error': 'ONNX model is not available. Please check server logs.'}), 500
+            
+            session, used_model_path = model_info
+            used_model_name = os.path.basename(used_model_path)
+            
+            # 轉換顯示名稱為對應的 .pth (為了符合前端與開發者的理解)
+            if 'pro' in used_model_name:
+                used_model_name = 'model_epoch_126.pth'
+            else:
+                used_model_name = 'model_epoch_1.pth'
                 
             # 影像前處理 (不再需要 PIL 或 PyTorch)
             # 1. 轉灰階
@@ -340,12 +349,14 @@ def process():
                 
             if is_protobuf:
                 import magic_eraser_pb2
-                res_msg = magic_eraser_pb2.ProcessResponse(success=True, image_data=im_buf_arr.tobytes())
+                res_msg = magic_eraser_pb2.ProcessResponse(success=True, image_data=im_buf_arr.tobytes(), used_model_name=used_model_name)
                 return Response(res_msg.SerializeToString(), mimetype='application/x-protobuf')
             else:
                 byte_io = io.BytesIO(im_buf_arr.tobytes())
                 byte_io.seek(0)
-                return send_file(byte_io, mimetype='image/jpeg')
+                response = send_file(byte_io, mimetype='image/jpeg')
+                response.headers['X-Used-Model-Name'] = used_model_name
+                return response
             
     except Exception as e:
         # M-4 修復：不洩漏內部錯誤細節給前端
