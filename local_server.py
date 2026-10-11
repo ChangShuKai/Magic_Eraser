@@ -1,8 +1,25 @@
+import sys
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TRAIN_PIPELINE_DIR = os.path.join(BASE_DIR, 'train_pipeline')
+
+for p in [BASE_DIR, TRAIN_PIPELINE_DIR, os.path.join(BASE_DIR, 'public')]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+# 後端伺服器自動 cd train_pipeline
+if os.path.exists(TRAIN_PIPELINE_DIR):
+    os.chdir(TRAIN_PIPELINE_DIR)
+    print(f"後端伺服器已自動切換目錄 (cd) 至: {os.getcwd()}")
+
 from flask import Flask, request, jsonify, send_from_directory, send_file, Response
 import cv2
 import numpy as np
 import io
-import os
+import subprocess
+import urllib.parse
+import uuid
 from image_processor import process_image, enhance_text, whiten_background
 
 import torch
@@ -10,17 +27,29 @@ import torchvision.transforms as T
 import torch.nn.functional as F
 from PIL import Image
 
+import glob
+
 AI_MODELS = {}
+
+def get_latest_checkpoint_path():
+    checkpoint_dir = os.path.join(TRAIN_PIPELINE_DIR, "checkpoints")
+    pth_files = glob.glob(os.path.join(checkpoint_dir, "model_epoch_*.pth"))
+    if not pth_files:
+        return os.path.join(checkpoint_dir, "model_epoch_126.pth")
+    def get_epoch_num(f):
+        try:
+            return int(os.path.basename(f).replace("model_epoch_", "").replace(".pth", ""))
+        except Exception:
+            return -1
+    return max(pth_files, key=get_epoch_num)
 
 def get_ai_model(model_name):
     global AI_MODELS
     if model_name in AI_MODELS:
         return AI_MODELS[model_name]
     
-    import sys
-    train_pipeline_dir = os.path.join(os.path.dirname(__file__), 'train_pipeline')
-    if train_pipeline_dir not in sys.path:
-        sys.path.append(train_pipeline_dir)
+    if TRAIN_PIPELINE_DIR not in sys.path:
+        sys.path.append(TRAIN_PIPELINE_DIR)
         
     try:
         from model import MobileNetV3UNet
@@ -29,27 +58,7 @@ def get_ai_model(model_name):
         
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = MobileNetV3UNet()
-    
-    if model_name == 'klareo-1-pro':
-        model_path = os.path.join(train_pipeline_dir, "checkpoints", "model_epoch_126.pth")
-    else:
-        # Default for klareo-1-flash or others, you could use a different path
-        # Let's find the latest model for flash or just use model_epoch_1.pth
-        import glob
-        checkpoint_dir = os.path.join(train_pipeline_dir, "checkpoints")
-        pth_files = glob.glob(os.path.join(checkpoint_dir, "model_epoch_*.pth"))
-        
-        # fallback to the 126 or max
-        model_path = os.path.join(train_pipeline_dir, "checkpoints", "model_epoch_1.pth")
-        if pth_files:
-            def get_epoch_num(f):
-                try:
-                    return int(os.path.basename(f).replace("model_epoch_", "").replace(".pth", ""))
-                except:
-                    return -1
-            latest_pth = max(pth_files, key=get_epoch_num)
-            if latest_pth:
-                model_path = latest_pth
+    model_path = get_latest_checkpoint_path()
                 
     if os.path.exists(model_path):
         model.load_state_dict(torch.load(model_path, map_location=device))
@@ -59,8 +68,8 @@ def get_ai_model(model_name):
     AI_MODELS[model_name] = (model, device, model_path)
     return AI_MODELS[model_name]
 
-# 建立 Flask 應用程式，並將 public 設定為靜態檔案目錄
-app = Flask(__name__, static_folder='public')
+# 建立 Flask 應用程式，並將 public 設定為靜態檔案目錄 (絕對路徑確保目錄切換後依然正常)
+app = Flask(__name__, static_folder=os.path.join(BASE_DIR, 'public'))
 
 # 限制上傳檔案大小為 30MB
 app.config['MAX_CONTENT_LENGTH'] = 30 * 1024 * 1024
@@ -102,8 +111,6 @@ def process():
     is_protobuf = request.headers.get('Content-Type') == 'application/x-protobuf'
 
     if is_protobuf:
-        import sys
-        sys.path.append(os.path.join(os.path.dirname(__file__), 'public'))
         import magic_eraser_pb2
         req_msg = magic_eraser_pb2.ProcessRequest()
         try:
@@ -131,6 +138,86 @@ def process():
     # 魔術字節驗證：確保上傳內容為真實圖片
     if not is_valid_image_bytes(in_memory_file):
         return jsonify({'error': '不支援的檔案類型或檔案已損毀。僅接受 JPG, PNG, WebP。'}), 415
+
+    # 提取前端傳送的文件名稱
+    raw_filename = ""
+    if 'X-File-Name' in request.headers:
+        try:
+            raw_filename = urllib.parse.unquote(request.headers.get('X-File-Name', ''))
+        except Exception:
+            raw_filename = request.headers.get('X-File-Name', '')
+
+    if not raw_filename and not is_protobuf:
+        if 'image' in request.files and request.files['image'].filename:
+            raw_filename = request.files['image'].filename
+        if not raw_filename:
+            raw_filename = request.form.get('file_name', '')
+
+    if not raw_filename and is_protobuf:
+        raw_filename = getattr(req_msg, 'file_name', '')
+
+    filename = os.path.basename(raw_filename).strip() if raw_filename else ""
+    if not filename:
+        filename = f"upload_{uuid.uuid4().hex[:8]}.png"
+    name_root, ext = os.path.splitext(filename)
+    if not ext or ext.lower() not in ['.jpg', '.jpeg', '.png', '.webp', '.bmp']:
+        filename = f"{filename}.png"
+
+    # 判斷是否選用 klareo-1 pro 模型
+    norm_model = str(model_name).strip().lower().replace('_', '-').replace(' ', '-')
+    if norm_model == 'klareo-1-pro':
+        # 後端只需運算：自動儲存圖片至 train_pipeline 並調用 infer_python.py
+        target_input_path = os.path.join(TRAIN_PIPELINE_DIR, filename)
+        with open(target_input_path, 'wb') as f:
+            f.write(in_memory_file)
+        print(f"[Klareo-1 Pro] 收到前端傳來的圖片並存為: {target_input_path}")
+
+
+        latest_ckpt = get_latest_checkpoint_path()
+        rel_model_path = os.path.relpath(latest_ckpt, TRAIN_PIPELINE_DIR).replace("\\", "/")
+        cmd = [sys.executable, "infer_python.py", "-i", filename, "-m", rel_model_path]
+        print(f"[Klareo-1 Pro] 自動執行推論指令: {' '.join(cmd)}")
+
+        proc = subprocess.run(
+            cmd,
+            cwd=TRAIN_PIPELINE_DIR,
+            capture_output=True,
+            text=True
+        )
+        if proc.stdout:
+            print(f"[推論 stdout]:\n{proc.stdout}")
+        if proc.stderr:
+            print(f"[推論 stderr]:\n{proc.stderr}")
+
+        if proc.returncode != 0:
+            return jsonify({'error': f'推論失敗: {proc.stderr or proc.stdout}'}), 500
+
+        name_part, ext_part = os.path.splitext(filename)
+        cleaned_filename = f"{name_part}_ai_cleaned{ext_part}"
+        cleaned_path = os.path.join(TRAIN_PIPELINE_DIR, cleaned_filename)
+
+        if not os.path.exists(cleaned_path):
+            return jsonify({'error': f'找不到推論結果檔案: {cleaned_filename}'}), 500
+
+        with open(cleaned_path, 'rb') as f:
+            im_bytes = f.read()
+
+        used_model_name = os.path.basename(latest_ckpt)
+
+        if is_protobuf:
+            import magic_eraser_pb2
+            res_msg = magic_eraser_pb2.ProcessResponse(
+                success=True,
+                image_data=im_bytes,
+                used_model_name=used_model_name
+            )
+            return Response(res_msg.SerializeToString(), mimetype='application/x-protobuf')
+        else:
+            byte_io = io.BytesIO(im_bytes)
+            byte_io.seek(0)
+            response = send_file(byte_io, mimetype='image/jpeg')
+            response.headers['X-Used-Model-Name'] = used_model_name
+            return response
     
     # 簡單的參數驗證
     if color_type not in ['red', 'blue', 'both']:
@@ -208,8 +295,6 @@ def process():
             
         # 5. 回傳圖片
         if is_protobuf:
-            import sys
-            sys.path.append(os.path.join(os.path.dirname(__file__), 'public'))
             import magic_eraser_pb2
             if fill_method == 'white':
                 res_msg = magic_eraser_pb2.ProcessResponse(success=True, image_data=im_buf_arr.tobytes())

@@ -31,7 +31,7 @@ def infer_image(image_path, model_path, patch_size=512, overlap=32):
     # 載入模型
     model = MobileNetV3UNet().to(device)
     if os.path.exists(model_path):
-        model.load_state_dict(torch.load(model_path, map_location=device))
+        model.load_state_dict(torch.load(model_path, map_location=device, weights_only=False))
         print(f"Loaded weights from {model_path}")
     else:
         print(f"Warning: {model_path} not found. Using random weights!")
@@ -41,12 +41,25 @@ def infer_image(image_path, model_path, patch_size=512, overlap=32):
     # 讀取圖片
     img_bgr = cv2.imread(image_path)
     if img_bgr is None:
+        try:
+            img_bgr = cv2.imdecode(np.fromfile(image_path, dtype=np.uint8), cv2.IMREAD_COLOR)
+        except Exception:
+            pass
+    if img_bgr is None:
         raise ValueError(f"Could not read image: {image_path}")
         
     img_gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    orig_h, orig_w = img_gray.shape
+    
+    # 若圖片小於 patch_size 則補白邊避免維度錯誤
+    pad_h = max(0, patch_size - orig_h)
+    pad_w = max(0, patch_size - orig_w)
+    if pad_h > 0 or pad_w > 0:
+        img_gray = cv2.copyMakeBorder(img_gray, 0, pad_h, 0, pad_w, cv2.BORDER_CONSTANT, value=255)
+        
     h, w = img_gray.shape
     
-    print(f"Processing image {image_path} ({w}x{h})...")
+    print(f"Processing image {image_path} ({orig_w}x{orig_h})...")
     
     stride = patch_size - overlap
     
@@ -89,18 +102,30 @@ def infer_image(image_path, model_path, patch_size=512, overlap=32):
     weight_buffer[weight_buffer == 0] = 1.0
     final_img_float = (output_buffer / weight_buffer) * 255.0
     final_img = np.clip(final_img_float, 0, 255).astype(np.uint8)
+    if pad_h > 0 or pad_w > 0:
+        final_img = final_img[:orig_h, :orig_w]
     
     # 儲存結果
     name, ext = os.path.splitext(image_path)
     out_path = f"{name}_ai_cleaned{ext}"
-    cv2.imwrite(out_path, final_img)
+    success = cv2.imwrite(out_path, final_img)
+    if not success:
+        try:
+            is_enc, enc_img = cv2.imencode(ext if ext else ".png", final_img)
+            if is_enc:
+                enc_img.tofile(out_path)
+        except Exception:
+            pass
     print(f"Output saved to {out_path}")
 
 if __name__ == "__main__":
     import argparse
+    import glob
+    ckpts = glob.glob("checkpoints/model_epoch_*.pth")
+    default_model = max(ckpts, key=lambda x: int(x.split('_')[-1].split('.')[0])) if ckpts else "checkpoints/model_epoch_126.pth"
     parser = argparse.ArgumentParser(description="AI 去手寫推論腳本")
     parser.add_argument("-i", "--image", type=str, required=True, help="要處理的圖片路徑 (例如: test.jpg)")
-    parser.add_argument("-m", "--model", type=str, default="checkpoints/model_epoch_1.pth", help="模型權重路徑")
+    parser.add_argument("-m", "--model", type=str, default=default_model, help="模型權重路徑")
     args = parser.parse_args()
     
     infer_image(args.image, args.model)

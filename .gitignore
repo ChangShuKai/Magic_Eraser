@@ -5,8 +5,8 @@ dist/
 *.pyc
 train_pipeline/__pycache__/
 .pytest_cache/
-train_pipeline/checkpoints/
 *.pth
+!train_pipeline/checkpoints/*.pth
 
 # 機敏資訊 — 永遠不要提交
 .env

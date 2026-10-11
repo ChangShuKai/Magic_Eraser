@@ -910,11 +910,13 @@ if (processBtn) processBtn.addEventListener('click', async () => {
             // L-3 修復：透過 Vercel rewrite 代理，隱藏真實後端 URL
             const API_URL = '/api-proxy/clean';
             
+            const fileName = fileObj.file ? fileObj.file.name : (fileToUpload.name || 'image.png');
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/x-protobuf'
+                    'Content-Type': 'application/x-protobuf',
+                    'X-File-Name': encodeURIComponent(fileName)
                 },
                 body: buffer
             });

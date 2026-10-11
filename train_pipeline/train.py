@@ -75,8 +75,15 @@ def train():
         avg_loss = epoch_loss / len(dataloader)
         print(f"Epoch [{epoch+1}/{epochs}] Average Loss: {avg_loss:.4f}, LR: {scheduler.get_last_lr()[0]:.6f}")
         
-        # 儲存 Checkpoint
-        torch.save(model.state_dict(), f"checkpoints/model_epoch_{epoch+1}.pth")
+        # 儲存 Checkpoint 並刪除舊版，只保留最新一版
+        new_ckpt = f"checkpoints/model_epoch_{epoch+1}.pth"
+        torch.save(model.state_dict(), new_ckpt)
+        for old_ckpt in glob.glob("checkpoints/model_epoch_*.pth"):
+            if os.path.abspath(old_ckpt) != os.path.abspath(new_ckpt):
+                try:
+                    os.remove(old_ckpt)
+                except Exception as e:
+                    print(f"Warning: Failed to delete old checkpoint {old_ckpt}: {e}")
         
     print("Training Complete!")
 
