@@ -33,5 +33,5 @@ USER appuser
 EXPOSE 8080
 
 # 使用 gunicorn 啟動 Flask 應用 (對應 api/index.py 中的 app)
-# 設定 threads 可增加併發處理能力
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--threads", "8", "--timeout", "120", "api.index:app"]
+# 設定 workers=2, threads=4 解除 Python GIL 瓶頸，提升多核心並行運算能力
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--threads", "4", "--timeout", "120", "api.index:app"]
