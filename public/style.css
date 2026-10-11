@@ -482,6 +482,15 @@
             color: #374151;
         }
 
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+            color: var(--accent);
+            fill: currentColor;
+            transition: var(--transition);
+        }
+
         .upload-area h3 {
             margin-bottom: 6px;
             font-size: 0.875rem;
